@@ -4,4 +4,4 @@ print("Hello, what is your name?")
 
 insert = input(">> Please insert name ") #Takes user input
 
-print("Hello " + insert + "!")
+print("Hello",insert + "!")
