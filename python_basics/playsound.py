@@ -1,11 +1,14 @@
 import simpleaudio as sa
+import time as t
 
 #--------------------------- FUNCTIONS -------------------------#
 
-def loop(file_path, times) : # Plays an audiofile a specified number of times
-	while(times > 0) :
-		playFile(file_path)
-		times -= 1
+# def loop(file_path, times) : # Plays an audiofile a specified number of times
+# 	while(times > 0) :
+# 		playFile(file_path)
+# 		times -= 1
+
+def playRhythm(file_path, rhythm) : # Plays an audiofile in a specific rhythm.
 
 def playFile(file_path) : # Plays an audiofile
 	wave_obj = sa.WaveObject.from_wave_file(file_path)
@@ -21,13 +24,13 @@ print("(must be a whole number from 1 to 10)")
 valid = False
 
 while not valid : # Keeps asking for an input if the given input is invalid
-	insert = input(">> ")
+	numPlaybackTimes = input(">> ")
 
-	if(insert.isdigit()) : # Checks if the input is an integer
-		insert = int(insert) # Converts a valid input-string to an int
-		if(insert >= 1 and insert <= 10) : # Checks if the input lays from 1 to 10
+	if(numPlaybackTimes.isdigit()) : # Checks if the input is an integer
+		numPlaybackTimes = int(numPlaybackTimes) # Converts a valid input-string to an int
+		if(numPlaybackTimes >= 1 and numPlaybackTimes <= 10) : # Checks if the input lays from 1 to 10
 			valid = True
-			loop("GTKick.wav", insert)
+			loop("resources/GTKick.wav", numPlaybackTimes)
 		else :
 			print("Please insert a whole number from 1 to 10") 
 	else :
