@@ -148,13 +148,13 @@ while running :
 
 #---playback---#
 	elif(state == 'play') :
-		if(not valid_tempo) :
+		if(not valid_tempo) : # Checks if a tempo has been specified before sample-playback
 			print('no tempo specified')
 			state = 'tempo'
-		elif(not valid_rhythm) :
+		elif(not valid_rhythm) : # Checks if a rhythm has been specified before sample-playback
 			print('no rhythm specified')
 			state = 'rhythm'
-		elif(not valid_sample) :
+		elif(not valid_sample) : # Checks if a sample has been specified before sample-playback
 			print('no sample specified')
 			state = 'sample'
 		else :
@@ -175,7 +175,7 @@ while running :
 					if(numPlaybackTimes >= 1 and numPlaybackTimes <= 10) : # Checks if the input ranges from 1 to 10
 						valid_playback = True
 						#loop("resources/GTKick.wav", numPlaybackTimes)
-						playRhythm(sample_path, numPlaybackTimes, rhythm, tempo)
+						playRhythm(sample_path, numPlaybackTimes, rhythm, tempo) # Plays back the specified sample accordingly to the given inputs
 					else :
 						print("Please insert a whole number from 1 to 10") 
 				else :
