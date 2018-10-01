@@ -1,6 +1,6 @@
 import simpleaudio as sa
 import time
-import random
+from random import randint
 
 """
 An example project in which a rhythmical sequence (one measure, 1 sample) is played.
@@ -17,11 +17,19 @@ We will trigger events based on a timestamp.
     Why is this a more accurate method then the methods used in the examples
     "04_randomNoteDuration.py" and "05_oneSampleSequenceSteps.py"?
     Notate your answer below this line (Dutch is allowed)!
+
+	By using the time.sleep() function, you are pausing the code on that thread.
+	This will be accurate if playing the sample en pausing the code is the only thing happening.
+	However, as soon as more code has to be run in between, more delay will be introduced.
+	This means that in the long run, the sequencer will start to run out of sinc with the
+	original tempo (and with other threads if those are also running)
+
 - Alter the code:
   Currently one sample is played. Add another sample to the script.
   When a sample needs to be played, choose one of the two samples
   randomly.
   (See the hint about the random package in script "02_timedPlayback".)
+
 - Alter the code:
   Currently the sequence is only played once.
   Alter the code to play it multiple times.
@@ -31,45 +39,42 @@ We will trigger events based on a timestamp.
 
 # load 1 audioFile and store it into a list
 # note: using a list taking the next step into account: using multiple samples
-samples = [sa.WaveObject.from_wave_file("../audioFiles/Dog2.wav")]
 
-# set bpm
-bpm = 120
-# calculate the duration of a quarter note
-quarterNoteDuration = 60 / bpm
-# calculate the duration of a sixteenth note
-sixteenthNoteDuration = quarterNoteDuration / 4.0
 
-# create a list to hold the timestamps
-timestamps = []
-# create a list with ‘note timestamps' in 16th at which we should play the sample
-timestamps16th = [0, 2, 4, 8, 11]
-# transform the sixteenthTimestamps to a timestamps list with time values
-for timestamp in timestamps16th:
-  timestamps.append(timestamp * sixteenthNoteDuration)
+samples = ["Dog2.wav", "Laser1.wav", "Pop.wav", "aSound.wav"] # list of samples
+i = randint(0, len(samples) - 1) # generates a random integer
+file_path = "audioFiles/" + samples[i] # creates file-directory
+sample = sa.WaveObject.from_wave_file(file_path) # sets sample
 
-# retrieve first timestamp
-# NOTE: pop(0) returns and removes the element at index 0
-timestamp = timestamps.pop(0)
-# retrieve the startime: current time
-startTime = time.time()
+bpm = 120 # set bpm
+quarterNoteDuration = 60 / bpm # calculate the duration of a quarter note
+sixteenthNoteDuration = quarterNoteDuration / 4.0 # calculate the duration of a sixteenth note
+
+timeSignature = 3/4 # set time signature
+sixteenthNotePerBar = 16 * timeSignature # calculate the number of sixteenth notes in a bar.
+
+timestamps = [] # create a list to hold the timestamps
+timestamps16th = [0, 2, 4, 8, 11] # create a list with ‘note timestamps' in 16th at which we should play the sample
+
+repeats = 3 # sets number of repeats
+for r in range(0, repeats):
+	for timestamp in timestamps16th: # transform the sixteenthTimestamps to a timestamps list with time values
+		noteOffsetPerBar = r * sixteenthNotePerBar # calculates the offset for every bar
+		timestamps.append((timestamp + noteOffsetPerBar) * sixteenthNoteDuration)
+#print(timestamps)
+
+timestamp = timestamps.pop(0) # retrieve first timestamp
+startTime = time.time() # retrieve the startime: current time
+
 keepPlaying = True
-# play the sequence
-while keepPlaying:
-  # retrieve current time
-  currentTime = time.time()
-  # check if the timestamp's time is passed
-  if(currentTime - startTime >= timestamp):
-    # play sample
-    samples[0].play()
-
-    # if there are timestamps left in the timestamps list
-    if timestamps:
-      # retrieve the next timestamp
-      timestamp = timestamps.pop(0)
-    else:
-      # list is empty, stop loop
-      keepPlaying = False
-  else:
-    # wait for a very short moment
-    time.sleep(0.001)
+while keepPlaying: # play the sequence
+	currentTime = time.time() # retrieve current time
+  
+	if(currentTime - startTime >= timestamp): # check if the timestamp's time is passed
+		sample.play() # play sample
+		if timestamps: # if there are timestamps left in the timestamps list
+			timestamp = timestamps.pop(0) # retrieve the next timestamp
+		else: # list is empty, stop loop
+			keepPlaying = False 
+	else: # wait for a very short moment
+		time.sleep(0.001)
