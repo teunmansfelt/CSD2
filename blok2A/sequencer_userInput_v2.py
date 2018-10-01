@@ -120,14 +120,3 @@ sample = randomSample(samples)
 timestamps16th = durationsToTimestamps16th(rhythm)
 timestamps = timestamps16thToTimeValues(timestamps16th, tempo)
 playSequence(sample, timestamps)
-
-
-
-
-
-
-
-
-
-
-
