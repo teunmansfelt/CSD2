@@ -1,2 +1,96 @@
 
-Eindopdracht
+Eindopdracht CSD2a “Irregular Beat Generator”
+
+——Structuur——:
+
+Als ontwerp ben ik van plan een ‘state machine’ te bouwen. Op deze manier kan ik met sub-menu’s de gebruiksvriendelijkheid verbeteren.
+Ook ben ik van plan multi-threading te implementeren, zodat er meerder samples tegelijk gespeeld kunnen worden en de gebruiker settings kan veranderen terwijl het programma loopt.
+
+
+
+—-Functionaliteiten——:
+
+- Identificatie van user-input.
+Het programma moet kunnen onderscheiden of een gebruiker de terminal gebruikt, of een .txt bestand als input geeft en allebei de vormen van input kunnen verwerken.
+
+- Controle input.
+Het programma moet iedere input valideren en bij iedere foutieve input de gebruiker hiervan op de hoogte stellen i.p.v. te crashen.
+	(checken voor: geldige maatsoort?,
+			is input een float?,
+			is de opgegeven sample vindbaar/afspeelbaar?,
+			is de input binnen de gestelde grenzen?)
+
+- Help file.
+Als de gebruiker het programma nog nooit heeft gebruikt moet het programma een gebruikshandleiding kunnen presenteren met het command help.
+
+- Sub Menu’s
+De gebruiker kan kiezen tussen verschillende sub-menu’s om de instellingen van het programma te veranderen. (state-machine)
+	(sub-menu’s: 	help,
+			tempo instellen,
+			maatsoort instellen,
+			sample keuze per hoog/mid/laag,
+			kansberekening/verhouding tussen de hoeveelheid hoog/mid/laag
+			dichtheid van de sequence (hoeveel noten per maat)
+
+- Timestamps
+Het programma moet (real-time) een lijst van timestamps kunnen genereren per sample. Deze lijst is afhankelijk van de volgende elementen:
+			maatsoort (bij verandering, aanpassen in volgende maat)
+			dichtheid (bij verandering, aanpassen in volgende maat)
+			kansberekening/verhouding t.o.v. andere samples. (hierin zal een rangorde opgesteld moeten worden)	(bij verandering, aanpassen in volgende maat)
+De lijst van timestamps gaat niet uit van een tempo, maar van verhoudingen in lengte t.o.v. elkaar. Op deze manier kan het tempo tijdens het lopen van de sequencer veranderd worden.
+De kleinste nootlengte is die van een 64ste noot en de grootste die van een volledige maat. 
+
+- Maatsoort
+De maatsoort bepaalt het aantal stappen in een maat en het grid van zwaartepunten. Er is een grotere kans dat samples gespeeld worden op een zwaarte punt, wat er voor zal zorgen dat er enige structuur ontstaat en niet alleen maar random noten.
+
+- Dichtheid
+De dichtheid bepaalt de totale nootdichtheid per maat. Dit is een globale instelling die op toepassing is van alle drie de lagen. De dichtheid bepaald de kans dat er een korte of lange noot wordt gespeeld
+(grote kans op korte noten betekent dat er meer noten nodig zijn om de maat te vullen en dus een hogere dichtheid.)
+
+- Kansberekening
+De kansberekening bepaalt hoeveel iedere sample(hoog/mid/laag) voorkomt in de sequence. Hiervoor zal het programma eerst een grid maken. (hoe dit grid er uit ziet wordt bepaald door de maatsoort, de zwaartepunten en de nootdichtheid) Vervolgens wordt het grid met samples gevuld op basis van de kansberekening en aan de hand van een rangorde. Twee van de drie samples zullen gelijkwaardig zijn en de body van het ritme bepalen. Dit zijn ook de twee samples die op de zwaartepunten zullen vallen. De laatste van de drie samples zal onderdanig zijn en simpelweg alle lege ruimtes vullen in het grid. 
+
+- Tempo
+Het tempo bepaalt hoe snel de sequence wordt afgespeeld. Het programma moet de lijst van timestamps real-time  naar tijdwaarden kunnen omrekenen, zodat het tempo ook tijdens het spelen veranderd kan worden.
+
+- Sample Keuze
+De gebruiker kan voor hoog, mid en laag een sample kiezen. Zolang de sample in de ‘audiofiles’ folder staat, moet het programma met alleen de naam van de sample de file_path kunnen maken. Ook moet het programma kunnen laten zien welke samples er momenteel geselecteerd zijn en wat alle mogelijke samples zijn. Als de gebruiker een sample kiest zal deze ook éénmaal worden afgespeeld.
+
+- Sequencer
+Het programma moet met het gegenereerde ritme en opgegeven tempo de drie samples af kunnen spelen. Terwijl de samples spelen moet de gebruik nog steeds interactie met het programma aan kunnen gaan.
+
+- Randomisatie
+Het programma moet om de maat een variatie op het originele ritme toe kunnen passen. Dit zal resulteren in de volgende structuur: A-B-A-C-A-D-A-E-etc. De randomisatie zal bestaan uit het opnieuw uitrekenen of er een sample gespeeld wordt aan de hand van het grid. Bij de onderdanige laag zullen er simpelweg enkele noten verwisseld worden.
+
+
+
+——Stappenplan——:
+
+- Stap 1
+Kies met welke maatsoorten het programma moet kunnen werken. Doe onderzoek naar waar de zwaartepunten in deze maatsoorten liggen.
+
+- Stap 2
+Maak een basis structuur van het programma (import, objecten, functies, uitvoering) en de sub-menu’s (state-machine)
+
+- Stap 3
+Bekijk per functionaliteit of handig is om er een functie voor te schrijven.
+
+- Stap 4
+Maak en test alle functies in een apart bestand en kopieer ze naar het mainscript zodra ze werken.
+
+- Stap 5
+Knoop alle losse functionaliteiten aan elkaar.
+
+- Stap 6
+Test de gebruiksvriendelijkheid en pas de interactie met de gebruiker aan waar nodig
+
+
+
+
+
+
+
+
+
+
+
