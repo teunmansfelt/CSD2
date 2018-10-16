@@ -70,18 +70,21 @@ Het programma moet om de maat een variatie op het originele ritme toe kunnen pas
 Kies met welke maatsoorten het programma moet kunnen werken. Doe onderzoek naar waar de zwaartepunten in deze maatsoorten liggen.
 
 - Stap 2
-Maak een basis structuur van het programma (import, objecten, functies, uitvoering) en de sub-menu’s (state-machine)
+Onderzoek multi-threading en multi-processing. Kijk hierin vooral naar communicatie tussen functies die op verschillende threads/processen lopen.
 
 - Stap 3
-Bekijk per functionaliteit of handig is om er een functie voor te schrijven.
+Zoek alle kant en klare onderdelen die nodig zijn in het programma. (libraries etc.) Maak een basis structuur van het programma (import, objecten, functies, uitvoering) en de sub-menu’s (state-machine)
 
 - Stap 4
-Maak en test alle functies in een apart bestand en kopieer ze naar het mainscript zodra ze werken.
+Bekijk per functionaliteit of het handig is om er een losse functie voor te schrijven.
 
 - Stap 5
-Knoop alle losse functionaliteiten aan elkaar.
+Maak en test alle functies in een apart bestand en kopieer ze naar het mainscript zodra ze werken.
 
 - Stap 6
+Knoop alle losse functionaliteiten aan elkaar. Denk hierbij aan de verdeling over de threads/processen.
+
+- Stap 7
 Test de gebruiksvriendelijkheid en pas de interactie met de gebruiker aan waar nodig
 
 
