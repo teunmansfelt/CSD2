@@ -65,6 +65,7 @@ while True:
 
 			print("done")
 
+
 	if insert == 'multithreading':
 #------------ MULTITHREADING ------------#
 		# Bij multithreading worden er meerdere functies sequencieel afgewisseld op het moment dat een
@@ -108,3 +109,73 @@ while True:
 
 		t1.join()
 		t2.join()
+
+		print("done")
+
+
+	if insert == 'open file':
+#----------- READING FROM FILE -----------#
+
+		def fileAvailable(file_path):
+			try:
+				f = open(str(file_path), "r")
+				f.close()
+				return True
+			except FileNotFoundError:
+				print("File not available \nMake sure the file name is spelled correctly and in the saves folder")
+				return False
+		
+		while True:
+			file_name = input()
+			file_path = "saves/" + str(file_name)
+
+			if fileAvailable(file_path):
+				
+				print('file.read(n)')
+				file = open(file_path, "r")
+
+				print(file.read(1))		# file.read(n) leest de eerste n-aantal karakters uit het
+				print(file.read(5))		# opgegeven bestand. Deze worden daarna 'verwijderd'
+				print('')				# (zie wat er gebeurt met file.read(5) nadat file.read(1)
+										# is aangeroepen)
+				file.close()
+				#---
+
+				print('file.readline()')	
+				file = open(file_path, "r")
+				
+				print(file.readline())	# file.readline() leest een volledige regel
+				print('')
+
+				file.close()
+				#---
+
+				print('file.read()')	
+				file = open(file_path, "r")
+				
+				print(file.read())		# file.read() zonder argument leest het volledige bestand.	
+				print('')
+
+				file.close()
+				#---
+
+				print('file.readlines()')
+				file = open(file_path, "r")
+
+				lines = file.readlines()# file.readlines() leest het volledige bestand en zet alle						
+				print(lines)			# regels in een lijst.
+				for line in lines:
+					print(line)
+
+				file.close()
+				#---
+
+				print("done")
+				break
+
+		
+
+
+
+
+
