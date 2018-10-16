@@ -24,36 +24,44 @@ while True:
 		import multiprocessing as mp
 
 		arr = [2,3,4,5,6]
-		multiplier = 3
-
-		def multiply(numbers):
-			global multiplier
+								
+		def multiply(numbers, multiplier):
 			for n in numbers:
-				print('multiply  ' + str(n * multiplier))
+				print('multiply  ' + str(n * multiplier.value))
 				time.sleep(3)
 
-		def devide(numbers):
-			global multiplier
+		def devide(numbers, multiplier):
 			for n in numbers:
-				print('devide  ' + str(n / multiplier))
+				print('devide  ' + str(n / multiplier.value))
 				time.sleep(3)
+
+		def showValue(value):
+			print(multiplier.value)
+			print(type(multiplier.value))
 
 		if __name__ == "__main__": 		# Het main proces, ook wel parent genoemd. Ieder nieuw
-										# proces is moet hierin worden geïnitialiseerd.
+										# proces moet hierin worden geïnitialiseerd.
+		
+			multiplier = mp.Value('i', 3)
 
-			p1 = mp.Process(target=multiply, args=(arr,))
-			p2 = mp.Process(target=devide, args=(arr,))
+			p1 = mp.Process(target=multiply, args=(arr, multiplier))
+			p2 = mp.Process(target=devide, args=(arr, multiplier))
 			p1.start()
 			p2.start()
+
+			# p3 = mp.Process(target=showValue, args=(multiplier,))
+			# p3.start()
 
 			# multiplier = float(input())	# Deze input heeft geen effect op de functies, omdat 
 											# ieder proces zijn eigen memory heeft. Het veranderen
 											# van de variabele heeft dus alleen effect op de main 
 											# en niet op de individuele processen.
 
-			
+			multiplier.value = int(input())
+
 			p1.join()
 			p2.join()
+			# p3.join()
 
 			print("done")
 
@@ -82,7 +90,7 @@ while True:
 			global multiplier
 			for n in numbers:
 				print('multiply  ' + str(n * multiplier))
-				time.sleep(5)
+				time.sleep(3)
 
 		def devide(numbers):
 			global multiplier
