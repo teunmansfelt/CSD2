@@ -62,29 +62,35 @@ Het programma moet met het gegenereerde ritme en opgegeven tempo de drie samples
 - Randomisatie
 Het programma moet om de maat een variatie op het originele ritme toe kunnen passen. Dit zal resulteren in de volgende structuur: A-B-A-C-A-D-A-E-etc. De randomisatie zal bestaan uit het opnieuw uitrekenen of er een sample gespeeld wordt aan de hand van het grid. Bij de onderdanige laag zullen er simpelweg enkele noten verwisseld worden.
 
+- Midi
+Het programma moet op verzoek van de gebruiker een midi-bestand kunnen exporteren met het gegenereerde ritme. Dit bestand moet automatisch naar de juist map op de computer geschreven worden.
+
 
 
 ——Stappenplan——:
 
 - Stap 1
-Kies met welke maatsoorten het programma moet kunnen werken. Doe onderzoek naar waar de zwaartepunten in deze maatsoorten liggen.
+Maak een gedetailleerde lijst van alle functionaliteiten. In deze lijst moet de werking van iedere functionaliteit duidelijk zijn.
 
 - Stap 2
-Onderzoek multi-threading en multi-processing. Kijk hierin vooral naar communicatie tussen functies die op verschillende threads/processen lopen.
+Kies met welke maatsoorten het programma moet kunnen werken. Doe onderzoek naar waar de zwaartepunten in deze maatsoorten liggen.
 
 - Stap 3
-Zoek alle kant en klare onderdelen die nodig zijn in het programma. (libraries etc.) Maak een basis structuur van het programma (import, objecten, functies, uitvoering) en de sub-menu’s (state-machine)
+Onderzoek multi-threading en multi-processing. Kijk hierin vooral naar communicatie tussen functies die op verschillende threads/processen lopen.
 
 - Stap 4
-Bekijk per functionaliteit of het handig is om er een losse functie voor te schrijven.
+Zoek alle kant en klare onderdelen die nodig zijn in het programma (libraries etc.). Maak een basis structuur van het programma (import, objecten, functies, uitvoering) en de sub-menu’s (state-machine)
 
 - Stap 5
-Maak en test alle functies in een apart bestand en kopieer ze naar het mainscript zodra ze werken.
+Bekijk per functionaliteit of het handig is om er een losse functie voor te schrijven.
 
 - Stap 6
-Knoop alle losse functionaliteiten aan elkaar. Denk hierbij aan de verdeling over de threads/processen.
+Maak en test alle functies in een apart bestand en kopieer ze naar het mainscript zodra ze werken.
 
 - Stap 7
+Knoop alle losse functionaliteiten aan elkaar. Denk hierbij aan de verdeling over de threads/processen.
+
+- Stap 8
 Test de gebruiksvriendelijkheid en pas de interactie met de gebruiker aan waar nodig
 
 
