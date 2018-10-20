@@ -1,0 +1,21 @@
+
+Analyse van indelingen van maatsoorten:
+
+Enkele voorbeelden van indelingen:
+5/4 = 3+2 tellen
+7/8 = 3+2+2 tellen
+9/8 = 2+2+2+3 tellen
+
+Het blijkt dat iedere onregelmatige maatsoort is in te delen in één blokje van 3 tellen en verder blokjes van 2 tellen.
+
+De kleinste noot in mijn algoritme zal 1/4de van een tel zijn. (voor een 5/4e maat is de kleinste noot een 16e, voor een 7/8e maat is de kleinste noot een 32e.)
+
+Dit betekent dus dat in mijn algoritme een 7/8e en een 7/4e maat exact hetzelfde zijn. (de ratio van kleinst mogelijke noot ten opzichte van de tel blijft gelijk)
+
+Dit betekent dus dat alle ritmes terug te voeren zijn naar een x/4e maat waarbij een 16e de kleinst mogelijke noot is
+
+Iedere maatsoort zal dus in de basis hetzelfde grid krijgen:
+- eerst een blokjes van 3 tellen
+- vervolgens willekeurig blokjes van 4 of 2 tellen, totdat de maat vol zit.
+
+Dit zijn de plaatsen in het grid waar de kans 100% is dat er een laag of mid sample zal vallen.
