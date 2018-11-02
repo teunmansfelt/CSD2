@@ -79,7 +79,7 @@ def generatePulseGrid(measureLength): # Returns a grid of pulses according to th
 
 	return gridPulsePerMeasure
 
-def generateNoteGrid(pulseGrid, noteProbabilities): # Returns a list of notelengths according to the pulses in the measure, note density and variety of possible note lenghts.
+def generateNoteList(pulseGrid, noteProbabilities): # Returns a list of notelengths according to the pulses in the measure, note density and variety of possible note lenghts.
 	gridNoteLengths = []
 	sumNoteValues = 0	
 	gridPulsePerMeasure = pulseGrid[1:len(pulseGrid)]	# Copies the relevant part of the pulses per measure.
@@ -103,13 +103,37 @@ def noteLengthsToNoteTimestamps(noteLengths): # Converts a lis of notelenghts in
 	gridNoteTimestamps = []
 
 	for i, noteLength in enumerate(noteLengths):
-		try:
+		if i > 0:
 			gridNoteTimestamps.append(gridNoteTimestamps[i - 1] + noteLength)
-		except IndexError:
+		else:
 			gridNoteTimestamps.append(noteLength)
 
 	return gridNoteTimestamps
 
+#--randomization--#
+def swapNotes(notes, index): # Swaps two consecutive notes
+	note1 = notes[index]
+	note2 = notes[index + 1]
+
+	notes[index] = note2
+	notes[index + 1] = note1
+
+	return notes
+
+def glueNotes(notes, index): # Glues two consecutive notes together.
+	notes[index] = notes[index] + notes[index + 1]
+	del notes[index + 1]
+
+	return notes
+
+def splitNotes(notes, index): # Splits a note exactly in half.
+	note = notes[index]
+	note *= 0.5
+
+	notes[index] = note
+	notes.insert(index + 1, note)
+
+	return notes
 
 #-------------------- CLASSES --------------------#
 class sampleLayerClass:	# Handles the playback of a sample and keeps track of all the playback-properties. 	
@@ -120,36 +144,81 @@ class sampleLayerClass:	# Handles the playback of a sample and keeps track of al
 		self.noteLengthVariety = noteLengthVariety
 		self.randomization = randomization
 
-		# Initializes the pulseGrid and the noteGrid 
+		# Initializes the pulseGrid, the noteList and the timestampList
 		self.noteProbabilities = createProbabilityDistribution(len(noteLengths), self.noteDensity, self.noteLengthVariety)
 		if not customPulseGrid:
 			self.pulseGrid = generatePulseGrid(timeSignature.measureLength)
 		else:
 			self.pulseGrid = customPulseGrid
-		self.noteGrid = generateNoteGrid(self.pulseGrid, self.noteProbabilities)
+		self.noteList = generateNoteList(self.pulseGrid, self.noteProbabilities)
+		self.timestampList = noteLengthsToNoteTimestamps(self.noteList)
 
-	def setSample(self, name): # sets sample and creates a corresponding file_path.
+	def setSample(self, name): # Sets sample and creates a corresponding file_path.
 		self.name = name
 		self.file_path = 'resources/audioFiles/' + name
 
-	def setNoteDensity(self, value): # sets the noteDensity and regenerates the noteGrid.
+	def setNoteDensity(self, value): # Sets the noteDensity and regenerates the noteList.
 		self.noteDensity = value
 		self.noteProbabilities = createProbabilityDistribution(len(noteLengths), self.noteDensity, self.noteLengthVariety)
-		self.noteGrid = generateNoteGrid(self.pulseGrid, self.noteProbabilities)
+		self.noteList = generateNoteList(self.pulseGrid, self.noteProbabilities)
 
-	def setNoteLengthVariety(self, value): # sets the noteLengthVariety and regenerates the noteGrid.
+	def setNoteLengthVariety(self, value): # Sets the noteLengthVariety and regenerates the noteList.
 		self.noteDensity = value
 		self.noteProbabilities = createProbabilityDistribution(len(noteLengths), self.noteDensity, self.noteLengthVariety)
-		self.noteGrid = generateNoteGrid(self.pulseGrid, self.noteProbabilities)
+		self.noteList = generateNoteList(self.pulseGrid, self.noteProbabilities)
 
-	def generateGrids(self, customPulseGrid): # regenerates
+	def generateGrids(self, customPulseGrid): # Generates the pulseGrid, the noteList and the timestampList
 		if not customPulseGrid:
 			self.pulseGrid = generatePulseGrid(timeSignature.measureLength)
 		else:
 			self.pulseGrid = customPulseGrid
-		self.noteGrid = generateNoteGrid(self.pulseGrid, self.noteProbabilities)
+		self.noteList = generateNoteList(self.pulseGrid, self.noteProbabilities)
+		self.timestampList = noteLengthsToNoteTimestamps(self.noteList)
 
-class timeSignatureClass: # Stores the timesignature information and handles timesignature changes
+	def randomize(self):
+		print(self.noteList)
+		print(self.timestampList)
+
+		if randomizationMode == "static":
+			for i in range(0, self.randomization):				
+				option = random.randint(0,2)
+				#option = 1
+
+				if option == 0:
+					index = random.randint(0, len(self.noteList)-2)				
+					for pulse in self.pulseGrid:
+						while True:
+								if self.timestampList[index] == pulse or self.noteList[index] == self.noteList[index + 1]:
+									index = random.randint(0, len(self.noteList)-2)
+								else:
+									break					 
+					self.noteListCopy = swapNotes(self.noteList, index)
+					self.timestampList = noteLengthsToNoteTimestamps(self.noteListCopy)
+
+		else:
+			for i in range(0, self.randomization):								# The self.randomizations sets the amount of randomizations.
+				index1 = random.randint(0, len(self.noteList)-1)				# Picks a random index from the noteList.
+				option = random.randint(0,2)									# Determines what type of randomization should be applied.
+
+				if option == 0:
+					if index1 == len(self.noteList)-1:							# Makes sure the index doesn't correspond to the last element in the noteList.
+						index1 = random.randint(0, len(self.noteList)-2)
+					self.noteList = swapNotes(self.noteList, index1, index2)	# Swaps two notes.
+
+				if option == 1:
+					if index1 == len(self.noteList)-1:							# Makes sure the index doesn't correspond to the last note in the noteList.
+						index1 = random.randint(0, len(self.noteList)-2)
+					self.noteList = glueNotes(self.noteList, index1)			# Glues two notes together.
+
+				if option == 2:
+					while self.noteList[index1] == 0.25:						# Makes sure the note is bigger than 0.25.
+						index1 = random.randint(0, len(self.noteList)-1)
+					self.noteList = splitNotes(self.noteList, index1)			# Splits a note.
+
+		print(self.noteList)
+		print(self.timestampList)
+
+class timeSignatureClass: # Stores the timesignature and handles timesignature changes
 	def __init__(self, value):
 		self.value = value
 		self.measureLength = int(value.split('/')[0])
@@ -160,7 +229,7 @@ class timeSignatureClass: # Stores the timesignature information and handles tim
 		self.measureLength = int(value.split('/')[0])
 		self.pulseLength = int(value.split('/')[1])
 
-		# Regenerates the pulseGrids and  the noteGrids of all the layers
+		# Regenerates the pulseGrids and  the noteLists of all the layers
 		for i in range(0, 3):
 			if i == 2:	# the third sampleLayer will get a custom pulseGrid
 				sampleLayers[i].generateGrids([0, self.measureLength])
@@ -174,15 +243,13 @@ sampleLayers = [] # a list to store the sample layer classes.
 #--default settings--#
 tempo = 120
 timeSignature = timeSignatureClass("5/4")
-randomizationMode = "regular"
+randomizationMode = "static"
 
 #--initialization--#
-sampleLayers.append(sampleLayerClass("Kick.wav", False, 5, 2, 0))
+sampleLayers.append(sampleLayerClass("Kick.wav", False, 5, 2, 2))
 
 #--------------------- MAIN ----------------------#
-
-
-
+sampleLayers[0].randomize()
 
 
 
