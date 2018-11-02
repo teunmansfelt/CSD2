@@ -128,10 +128,15 @@ def glueNotes(notes, index): # Glues two consecutive notes together.
 
 def splitNotes(notes, index): # Splits a note exactly in half.
 	note = notes[index]
-	note *= 0.5
+	note1 = note * 0.5
+	note2 = note1
 
-	notes[index] = note
-	notes.insert(index + 1, note)
+	if note % 0.5 != 0:
+		note1 += 0.125
+		note2 -= 0.125
+
+	notes[index] = note1
+	notes.insert(index + 1, note2)
 
 	return notes
 
@@ -181,42 +186,58 @@ class sampleLayerClass:	# Handles the playback of a sample and keeps track of al
 
 		if randomizationMode == "static":
 			for i in range(0, self.randomization):				
-				option = random.randint(0,2)
-				#option = 1
+				#option = random.randint(0,2)
+				option = 2
 
 				if option == 0:
-					index = random.randint(0, len(self.noteList)-2)				
-					for pulse in self.pulseGrid:
-						while True:
-								if self.timestampList[index] == pulse or self.noteList[index] == self.noteList[index + 1]:
-									index = random.randint(0, len(self.noteList)-2)
-								else:
-									break					 
-					self.noteListCopy = swapNotes(self.noteList, index)
-					self.timestampList = noteLengthsToNoteTimestamps(self.noteListCopy)
+					index = random.randint(0, len(self.noteList)-2)				# Picks a random element from the noteList, excluding the last element.		
+					for pulse in self.pulseGrid:								# The code inside this for-loop makes sure the notes that are about to be
+						while True:												# swaped, won't effect the original grid of pulses and don't have the same value.
+							if self.timestampList[index] == pulse or self.noteList[index] == self.noteList[index + 1]:
+								index = random.randint(0, len(self.noteList)-2)
+							else:
+								break					 
+					self.noteListCopy = swapNotes(self.noteList, index)			# Swaps two consecutive notes and stores the outputted list as a copy. 
+					self.timestampListCopy = noteLengthsToNoteTimestamps(self.noteListCopy)	
 
-		else:
+				elif option == 1:
+					index = random.randint(0, len(self.noteList)-2)				# Picks a random element from the noteList, excluding the last element.		
+					for pulse in self.pulseGrid:								# The code inside this for-loop makes sure the notes that are about to be
+						while True:												# glued, won't effect the original grid of pulses.
+							if self.timestampList[index + 1] == pulse:
+								index = random.randint(0, len(self.noteList)-2)
+							else:
+								break
+					self.noteListCopy = glueNotes(self.noteList, index)			# Glues two consecutive notes and stores the outputted list as a copy. 
+					self.timestampListCopy = noteLengthsToNoteTimestamps(self.noteListCopy)
+
+				elif option == 2:
+					index1 = random.randint(0, len(self.noteList)-1)			# Picks a random element from the noteList.
+					while self.noteList[index1] == 0.25:						# This while-loop makes sure the note is bigger than 0.25.
+						index1 = random.randint(0, len(self.noteList)-1)
+					self.noteListCopy = splitNotes(self.noteList, index1)			# Splits a note and stores the outputted list as a copy.
+					self.timestampListCopy = noteLengthsToNoteTimestamps(self.noteListCopy)
+
+		elif randomizationMode == "evolve":
 			for i in range(0, self.randomization):								# The self.randomizations sets the amount of randomizations.
-				index1 = random.randint(0, len(self.noteList)-1)				# Picks a random index from the noteList.
 				option = random.randint(0,2)									# Determines what type of randomization should be applied.
 
 				if option == 0:
-					if index1 == len(self.noteList)-1:							# Makes sure the index doesn't correspond to the last element in the noteList.
-						index1 = random.randint(0, len(self.noteList)-2)
+					index1 = random.randint(0, len(self.noteList)-2)			# Picks a random element from the noteList, excluding the last element.
 					self.noteList = swapNotes(self.noteList, index1, index2)	# Swaps two notes.
 
-				if option == 1:
-					if index1 == len(self.noteList)-1:							# Makes sure the index doesn't correspond to the last note in the noteList.
-						index1 = random.randint(0, len(self.noteList)-2)
+				elif option == 1:
+					index1 = random.randint(0, len(self.noteList)-2)			# Picks a random element from the noteList, excluding the last element.
 					self.noteList = glueNotes(self.noteList, index1)			# Glues two notes together.
 
-				if option == 2:
-					while self.noteList[index1] == 0.25:						# Makes sure the note is bigger than 0.25.
+				elif option == 2:
+					index1 = random.randint(0, len(self.noteList)-1)			# Picks a random element from the noteList.
+					while self.noteList[index1] == 0.25:						# This while-loop makes sure the note is bigger than 0.25.
 						index1 = random.randint(0, len(self.noteList)-1)
 					self.noteList = splitNotes(self.noteList, index1)			# Splits a note.
 
-		print(self.noteList)
-		print(self.timestampList)
+		print(self.noteListCopy)
+		print(self.timestampListCopy)
 
 class timeSignatureClass: # Stores the timesignature and handles timesignature changes
 	def __init__(self, value):
@@ -246,10 +267,9 @@ timeSignature = timeSignatureClass("5/4")
 randomizationMode = "static"
 
 #--initialization--#
-sampleLayers.append(sampleLayerClass("Kick.wav", False, 5, 2, 2))
+sampleLayers.append(sampleLayerClass("Kick.wav", False, 5, 2, 1))
 
 #--------------------- MAIN ----------------------#
-sampleLayers[0].randomize()
 
 
 
