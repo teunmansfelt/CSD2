@@ -4,6 +4,7 @@ import threading as t
 import time
 import random
 
+
 #------------------- FUNCTIONS -------------------#
 #--rhythm generation--#
 def createProbabilityDistribution(length, centrePosition, spread): # Returns a list of harmonically scaled probabilities
@@ -140,6 +141,41 @@ def splitNotes(notes, index): # Splits a note exactly in half.
 
 	return notes
 
+#--input validation--#
+def fileAvailable(file_path, error_message): # Checks if a given file can be found/exist.	
+	try:
+		f = open(str(file_path), "r")
+		f.close()
+		return True
+	except FileNotFoundError:
+		print(error_message)
+		return False
+
+def validSignature(timeSignature): # Checks if a given timeSignature is valid.
+	if not isinstance(timeSignature, str):
+		return False
+	
+	if not timeSignature[1] == '/':
+		return False
+	
+	timeSignature = timeSignature.split('/')
+	try:
+		int(timeSignature[0])
+		if int(timeSignature[0]) % 2 == 0:		# Checks if first number is odd
+			return False
+	except ValueError:
+		return False
+	
+	try:
+		int(timeSignature[1])
+		if not int(timeSignature[1]) % 4 == 0:	# Checks if second number is devisible by 4
+			return False
+	except ValueError:
+		return False
+
+	return True
+
+
 #-------------------- CLASSES --------------------#
 class sampleLayerClass:	# Handles the playback of a sample and keeps track of all the playback-properties. 	
 	def __init__(self, name, customPulseGrid, noteDensity, noteLengthVariety, randomization):
@@ -185,9 +221,8 @@ class sampleLayerClass:	# Handles the playback of a sample and keeps track of al
 		print(self.timestampList)
 
 		if randomizationMode == "static":
-			for i in range(0, self.randomization):				
-				#option = random.randint(0,2)
-				option = 2
+			for i in range(0, self.randomization):								# The self.randomizations sets the amount of randomizations.
+				option = random.randint(0,2)									# Determines what type of randomization should be applied.
 
 				if option == 0:
 					index = random.randint(0, len(self.noteList)-2)				# Picks a random element from the noteList, excluding the last element.		
@@ -215,7 +250,7 @@ class sampleLayerClass:	# Handles the playback of a sample and keeps track of al
 					index1 = random.randint(0, len(self.noteList)-1)			# Picks a random element from the noteList.
 					while self.noteList[index1] == 0.25:						# This while-loop makes sure the note is bigger than 0.25.
 						index1 = random.randint(0, len(self.noteList)-1)
-					self.noteListCopy = splitNotes(self.noteList, index1)			# Splits a note and stores the outputted list as a copy.
+					self.noteListCopy = splitNotes(self.noteList, index1)		# Splits a note and stores the outputted list as a copy.
 					self.timestampListCopy = noteLengthsToNoteTimestamps(self.noteListCopy)
 
 		elif randomizationMode == "evolve":
@@ -257,6 +292,7 @@ class timeSignatureClass: # Stores the timesignature and handles timesignature c
 			else:
 				sampleLayers[i].generateGrids(False)
 
+
 #-------------------- OBJECTS --------------------#
 noteLengths = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25]
 sampleLayers = [] # a list to store the sample layer classes.
@@ -268,6 +304,11 @@ randomizationMode = "static"
 
 #--initialization--#
 sampleLayers.append(sampleLayerClass("Kick.wav", False, 5, 2, 1))
+
+#--error messages--#
+# no function yet, old one worked with simpleAudio /// sampleNotInAudioFilesFolder = "Sample not available. \nPlease make sure the sample name is spelled correctly and in the audioFiles folder"
+fileNotInSavesFolder = "File not available. \nPlease make sure the file name is spelled correctly and in the saves folder."
+helpfileMissing = "The helpfile could not be found. \nPlease make sure you also downloaded the resources folder and put it in the same directory as the script."
 
 #--------------------- MAIN ----------------------#
 
