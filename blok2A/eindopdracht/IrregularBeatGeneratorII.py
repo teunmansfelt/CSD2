@@ -184,6 +184,14 @@ def validSignature(timeSignature): # Checks if a given timeSignature is valid.
 
 	return True
 
+#--misc. functions--#
+def clock(): # A clock that updates the global current time every millisecond
+	global currentTime
+
+	while not getattr(mainClock, "kill", False):	# Keeps looping, untill the thread gets killed.
+		currentTime = time.time()
+		time.sleep(0.001)
+
 
 #-------------------- CLASSES --------------------#
 class sampleLayerClass:	# Handles the note generation, note randomization and playback of a sample and keeps track of all the playback-properties. 	
