@@ -1,11 +1,12 @@
 
 #-------------------- IMPORTS --------------------#
+import simpleaudio as sa
 import threading as t
-import time
-import random
-
+import time, random
+from math import inf
 
 #------------------- FUNCTIONS -------------------#
+
 #--rhythm generation--#
 def createProbabilityDistribution(length, centrePosition, spread): # Returns a list of harmonically scaled probabilities
 	#----#
@@ -151,6 +152,14 @@ def fileAvailable(file_path, error_message): # Checks if a given file can be fou
 		print(error_message)
 		return False
 
+def sampleAvailable(file_path, error_message): # Checks if a given sample can be found/exist.
+	try:
+		s = sa.WaveObject.from_wave_file(file_path)
+		return True
+	except FileNotFoundError:
+		print(error_message)
+		return False
+
 def validSignature(timeSignature): # Checks if a given timeSignature is valid.
 	if not isinstance(timeSignature, str):
 		return False
@@ -177,26 +186,25 @@ def validSignature(timeSignature): # Checks if a given timeSignature is valid.
 
 
 #-------------------- CLASSES --------------------#
-class sampleLayerClass:	# Handles the playback of a sample and keeps track of all the playback-properties. 	
+class sampleLayerClass:	# Handles the note generation, note randomization and playback of a sample and keeps track of all the playback-properties. 	
 	def __init__(self, name, customPulseGrid, noteDensity, noteLengthVariety, randomization):
 		self.name = name
-		self.file_path = 'resources/audioFiles/' + name
+		self.audiofile = sa.WaveObject.from_wave_file("resources/audioFiles/" + name)
 		self.noteDensity = noteDensity
 		self.noteLengthVariety = noteLengthVariety
 		self.randomization = randomization
+		
+		self.rhythm = [0] # This list will store the entire generated rhythm.
+		self.rhythmIndex = 0
+		self.playing = False
 
-		# Initializes the pulseGrid, the noteList and the timestampList
+		# Initializes the pulseGrid, the noteList and the timestampList.
 		self.noteProbabilities = createProbabilityDistribution(len(noteLengths), self.noteDensity, self.noteLengthVariety)
-		if not customPulseGrid:
-			self.pulseGrid = generatePulseGrid(timeSignature.measureLength)
-		else:
-			self.pulseGrid = customPulseGrid
-		self.noteList = generateNoteList(self.pulseGrid, self.noteProbabilities)
-		self.timestampList = noteLengthsToNoteTimestamps(self.noteList)
+		self.generateGrids(customPulseGrid)
 
 	def setSample(self, name): # Sets sample and creates a corresponding file_path.
 		self.name = name
-		self.file_path = 'resources/audioFiles/' + name
+		self.audiofile = sa.WaveObject.from_wave_file("resources/audioFiles/" + name)
 
 	def setNoteDensity(self, value): # Sets the noteDensity and regenerates the noteList.
 		self.noteDensity = value
@@ -216,10 +224,7 @@ class sampleLayerClass:	# Handles the playback of a sample and keeps track of al
 		self.noteList = generateNoteList(self.pulseGrid, self.noteProbabilities)
 		self.timestampList = noteLengthsToNoteTimestamps(self.noteList)
 
-	def randomize(self):
-		print(self.noteList)
-		print(self.timestampList)
-
+	def randomize(self): # Randomizes the noteList
 		if randomizationMode == "static":
 			for i in range(0, self.randomization):								# The self.randomizations sets the amount of randomizations.
 				option = random.randint(0,2)									# Determines what type of randomization should be applied.
@@ -271,23 +276,46 @@ class sampleLayerClass:	# Handles the playback of a sample and keeps track of al
 						index1 = random.randint(0, len(self.noteList)-1)
 					self.noteList = splitNotes(self.noteList, index1)			# Splits a note.
 
-		print(self.noteListCopy)
-		print(self.timestampListCopy)
+	def play(self): # Plays the sample according to the rhythm stored in self.rhythm.		
+		beatDuration = (240 / (timeSignature.beatLength * tempo)) 	# Calculates the duration of a single beat.
+		timestamp = self.rhythm[self.rhythmIndex]					# Picks a timestamp from the stored rhythm.
+		timestamp *= beatDuration									# Converts the reletave timestamp to an absolute timestamp.
 
+		while self.playing:
+			if tempoChange:	# If the tempo is changing, the beat duration and the absolute timestamp get calculated live.					
+				beatDuration = (240 / (timeSignature.beatLength * tempo))
+				timestamp *= beatDuration
+
+			if currentTime - startTime >= timestamp:		# Checks if the timestamp has passed.
+				self.audiofile.play()
+				self.rhythmIndex += 1
+				timestamp = self.rhythm[self.rhythmIndex]	# Picks a new timestamp from the stored rhythm.
+				timestamp *= beatDuration					# Converts the reletave timestamp to an absolute timestamp.
+			else:
+				time.sleep(0.001)
+
+	def startPlayback(self): # Starts the playback of the sample
+		self.playing = True
+		self.playback = t.Thread(target = self.play)
+		self.playback.start()
+
+	def stopPlayback(self): # Stops the playback of the sample
+		self.playing = False
+		self.playback.join()
+		
 class timeSignatureClass: # Stores the timesignature and handles timesignature changes
 	def __init__(self, value):
 		self.value = value
 		self.measureLength = int(value.split('/')[0])
-		self.pulseLength = int(value.split('/')[1])
+		self.beatLength = int(value.split('/')[1])
 
 	def set(self, value):
 		self.value = value
 		self.measureLength = int(value.split('/')[0])
-		self.pulseLength = int(value.split('/')[1])
+		self.beatLength = int(value.split('/')[1])
 
-		# Regenerates the pulseGrids and  the noteLists of all the layers
-		for i in range(0, 3):
-			if i == 2:	# the third sampleLayer will get a custom pulseGrid
+		for i in range(0, 3): # The code inside this for-loop regenerates the pulseGrids and the noteLists of all the layers.
+			if i == 2:	# The third sampleLayer will get a custom pulseGrid.
 				sampleLayers[i].generateGrids([0, self.measureLength])
 			else:
 				sampleLayers[i].generateGrids(False)
@@ -295,7 +323,9 @@ class timeSignatureClass: # Stores the timesignature and handles timesignature c
 
 #-------------------- OBJECTS --------------------#
 noteLengths = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25]
-sampleLayers = [] # a list to store the sample layer classes.
+sampleLayers = [] # A list to store the sample layer classes.
+currentTime = 0 # A global variable to keep track of the current time.
+startTime = inf # A global variable to keep track of the start time. (Defaults to infinity to prevent premature playback)
 
 #--default settings--#
 tempo = 120
@@ -306,13 +336,17 @@ randomizationMode = "static"
 sampleLayers.append(sampleLayerClass("Kick.wav", False, 5, 2, 1))
 
 #--error messages--#
-# no function yet, old one worked with simpleAudio /// sampleNotInAudioFilesFolder = "Sample not available. \nPlease make sure the sample name is spelled correctly and in the audioFiles folder"
+sampleNotInAudioFilesFolder = "Sample not available. \nPlease make sure the sample name is spelled correctly and in the audioFiles folder"
 fileNotInSavesFolder = "File not available. \nPlease make sure the file name is spelled correctly and in the saves folder."
 helpfileMissing = "The helpfile could not be found. \nPlease make sure you also downloaded the resources folder and put it in the same directory as the script."
 
+#--misc. variables--#
+tempoChange = False
+
 #--------------------- MAIN ----------------------#
 
-
-
+sampleLayers[0].startPlayback()
+time.sleep(1)
+sampleLayers[0].stopPlayback()
 
 
