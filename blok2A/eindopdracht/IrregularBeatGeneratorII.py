@@ -3,10 +3,9 @@
 import simpleaudio as sa
 import threading as t
 import time, random
-from math import inf
+
 
 #------------------- FUNCTIONS -------------------#
-
 #--rhythm generation--#
 def createProbabilityDistribution(length, centrePosition, spread): # Returns a list of harmonically scaled probabilities
 	#----#
@@ -113,34 +112,43 @@ def noteLengthsToNoteTimestamps(noteLengths): # Converts a lis of notelenghts in
 	return gridNoteTimestamps
 
 #--randomization--#
-def swapNotes(notes, index): # Swaps two consecutive notes
-	note1 = notes[index]
-	note2 = notes[index + 1]
+def swapNotes(notes, index1, index2): # Swaps two notes
+	notesCopy = notes.copy()
+	note1 = notesCopy[index1]
+	if not index2: # If the second index is false, the second index will be the one after the first index.
+		note2 = notesCopy[index1 + 1]
+	else:
+		note2 = notesCopy[index2]
 
-	notes[index] = note2
-	notes[index + 1] = note1
+	notesCopy[index1] = note2
+	if not index2:
+		notesCopy[index1 + 1] = note1
+	else:
+		notesCopy[index2] = note1
 
-	return notes
+	return notesCopy
 
 def glueNotes(notes, index): # Glues two consecutive notes together.
-	notes[index] = notes[index] + notes[index + 1]
-	del notes[index + 1]
+	notesCopy = notes.copy()
+	notesCopy[index] = notesCopy[index] + notesCopy[index + 1]
+	del notesCopy[index + 1]
 
-	return notes
+	return notesCopy
 
-def splitNotes(notes, index): # Splits a note exactly in half.
-	note = notes[index]
+def splitNotes(notes, index): # Splits a note into two smaller notes.
+	notesCopy = notes.copy()
+	note = notesCopy[index]
 	note1 = note * 0.5
 	note2 = note1
 
-	if note % 0.5 != 0:
+	if note % 0.5 != 0: # Makes sure the outputted notes are a multiple of 0.25.
 		note1 += 0.125
 		note2 -= 0.125
 
-	notes[index] = note1
-	notes.insert(index + 1, note2)
+	notesCopy[index] = note1
+	notesCopy.insert(index + 1, note2)
 
-	return notes
+	return notesCopy
 
 #--input validation--#
 def fileAvailable(file_path, error_message): # Checks if a given file can be found/exist.	
@@ -161,36 +169,39 @@ def sampleAvailable(file_path, error_message): # Checks if a given sample can be
 		return False
 
 def validSignature(timeSignature): # Checks if a given timeSignature is valid.
-	if not isinstance(timeSignature, str):
-		return False
-	
 	if not timeSignature[1] == '/':
-		return False
-	
+		return False	
 	timeSignature = timeSignature.split('/')
+
 	try:
 		int(timeSignature[0])
-		if int(timeSignature[0]) % 2 == 0:		# Checks if first number is odd
+		if int(timeSignature[0]) % 2 == 0: # Checks if the first number is odd
 			return False
 	except ValueError:
 		return False
 	
 	try:
 		int(timeSignature[1])
-		if not int(timeSignature[1]) % 4 == 0:	# Checks if second number is devisible by 4
+		if not int(timeSignature[1]) % 4 == 0: # Checks if the second number is devisible by 4
 			return False
 	except ValueError:
 		return False
 
 	return True
 
-#--misc. functions--#
-def clock(): # A clock that updates the global current time every millisecond
-	global currentTime
+def isFloat(x): # Checks if an input is a float.
+	try :
+		float(x)
+		return True
+	except ValueError :
+		return False
 
-	while not getattr(mainClock, "kill", False):	# Keeps looping, untill the thread gets killed.
-		currentTime = time.time()
-		time.sleep(0.001)
+#--Misc. functions--#
+def goToHelp(subject): # Directs the user to a specified subject in the helpfile.
+	global state
+	print("invalid Argument")
+	state = "help"
+	entry[1] = subject
 
 
 #-------------------- CLASSES --------------------#
@@ -202,13 +213,13 @@ class sampleLayerClass:	# Handles the note generation, note randomization and pl
 		self.noteLengthVariety = noteLengthVariety
 		self.randomization = randomization
 		
-		self.rhythm = [0] # This list will store the entire generated rhythm.
-		self.rhythmIndex = 0
+		self.rhythm = rhythmClass() # This object will store the entire generated rhythm.
 		self.playing = False
 
 		# Initializes the pulseGrid, the noteList and the timestampList.
 		self.noteProbabilities = createProbabilityDistribution(len(noteLengths), self.noteDensity, self.noteLengthVariety)
 		self.generateGrids(customPulseGrid)
+		self.addNotes()
 
 	def setSample(self, name): # Sets sample and creates a corresponding file_path.
 		self.name = name
@@ -218,19 +229,31 @@ class sampleLayerClass:	# Handles the note generation, note randomization and pl
 		self.noteDensity = value
 		self.noteProbabilities = createProbabilityDistribution(len(noteLengths), self.noteDensity, self.noteLengthVariety)
 		self.noteList = generateNoteList(self.pulseGrid, self.noteProbabilities)
+		self.timestampList = noteLengthsToNoteTimestamps(self.noteList)
+		self.notesToStore = self.noteList.copy()
 
 	def setNoteLengthVariety(self, value): # Sets the noteLengthVariety and regenerates the noteList.
 		self.noteDensity = value
 		self.noteProbabilities = createProbabilityDistribution(len(noteLengths), self.noteDensity, self.noteLengthVariety)
 		self.noteList = generateNoteList(self.pulseGrid, self.noteProbabilities)
+		self.timestampList = noteLengthsToNoteTimestamps(self.noteList)
+		self.notesToStore = self.noteList.copy()
 
-	def generateGrids(self, customPulseGrid): # Generates the pulseGrid, the noteList and the timestampList
+	def generateGrids(self, customPulseGrid): # Generates the pulseGrid, the noteList and the timestampList.
 		if not customPulseGrid:
 			self.pulseGrid = generatePulseGrid(timeSignature.measureLength)
 		else:
 			self.pulseGrid = customPulseGrid
 		self.noteList = generateNoteList(self.pulseGrid, self.noteProbabilities)
 		self.timestampList = noteLengthsToNoteTimestamps(self.noteList)
+		self.notesToStore = self.noteList.copy()
+
+	def addNotes(self): # Adds the noteLengths and the timestamps to the rhythm
+		offset = eventHandler.measureNumber * timeSignature.measureLength
+		for timestamp in self.timestampList:
+			timestamp += offset
+			self.rhythm.timestamps.append(timestamp)
+		self.rhythm.noteLengths += self.notesToStore
 
 	def randomize(self): # Randomizes the noteList
 		if randomizationMode == "static":
@@ -245,8 +268,7 @@ class sampleLayerClass:	# Handles the note generation, note randomization and pl
 								index = random.randint(0, len(self.noteList)-2)
 							else:
 								break					 
-					self.noteListCopy = swapNotes(self.noteList, index)			# Swaps two consecutive notes and stores the outputted list as a copy. 
-					self.timestampListCopy = noteLengthsToNoteTimestamps(self.noteListCopy)	
+					self.notesToStore = swapNotes(self.noteList, index, False)	# Swaps two consecutive notes and stores the outputted list as a copy. 
 
 				elif option == 1:
 					index = random.randint(0, len(self.noteList)-2)				# Picks a random element from the noteList, excluding the last element.		
@@ -256,15 +278,16 @@ class sampleLayerClass:	# Handles the note generation, note randomization and pl
 								index = random.randint(0, len(self.noteList)-2)
 							else:
 								break
-					self.noteListCopy = glueNotes(self.noteList, index)			# Glues two consecutive notes and stores the outputted list as a copy. 
-					self.timestampListCopy = noteLengthsToNoteTimestamps(self.noteListCopy)
+					self.notesToStore = glueNotes(self.noteList, index)			# Glues two consecutive notes and stores the outputted list as a copy. 
 
 				elif option == 2:
-					index1 = random.randint(0, len(self.noteList)-1)			# Picks a random element from the noteList.
-					while self.noteList[index1] == 0.25:						# This while-loop makes sure the note is bigger than 0.25.
-						index1 = random.randint(0, len(self.noteList)-1)
-					self.noteListCopy = splitNotes(self.noteList, index1)		# Splits a note and stores the outputted list as a copy.
-					self.timestampListCopy = noteLengthsToNoteTimestamps(self.noteListCopy)
+					index = random.randint(0, len(self.noteList)-1)				# Picks a random element from the noteList.
+					while self.noteList[index] == 0.25:							# This while-loop makes sure the note is bigger than 0.25.
+						index = random.randint(0, len(self.noteList)-1)
+					self.notesToStore = splitNotes(self.noteList, index)		# Splits two consecutive notes and stores the outputted list as a copy. 
+
+				print("1", self.noteList)
+				print("2", self.notesToStore)
 
 		elif randomizationMode == "evolve":
 			for i in range(0, self.randomization):								# The self.randomizations sets the amount of randomizations.
@@ -272,46 +295,90 @@ class sampleLayerClass:	# Handles the note generation, note randomization and pl
 
 				if option == 0:
 					index1 = random.randint(0, len(self.noteList)-2)			# Picks a random element from the noteList, excluding the last element.
-					self.noteList = swapNotes(self.noteList, index1, index2)	# Swaps two notes.
+					self.noteList = swapNotes(self.noteList, index1, index2)	# Swaps two random notes
 
 				elif option == 1:
-					index1 = random.randint(0, len(self.noteList)-2)			# Picks a random element from the noteList, excluding the last element.
-					self.noteList = glueNotes(self.noteList, index1)			# Glues two notes together.
+					index = random.randint(0, len(self.noteList)-2)				# Picks a random element from the noteList, excluding the last element.
+					self.noteList = glueNotes(self.noteList, index)				# Glues two notes together.
 
 				elif option == 2:
-					index1 = random.randint(0, len(self.noteList)-1)			# Picks a random element from the noteList.
+					index = random.randint(0, len(self.noteList)-1)				# Picks a random element from the noteList.
 					while self.noteList[index1] == 0.25:						# This while-loop makes sure the note is bigger than 0.25.
-						index1 = random.randint(0, len(self.noteList)-1)
-					self.noteList = splitNotes(self.noteList, index1)			# Splits a note.
+						index = random.randint(0, len(self.noteList)-1)
+					self.noteList = splitNotes(self.noteList, index)			# Splits a note.
 
-	def play(self): # Plays the sample according to the rhythm stored in self.rhythm.		
-		beatDuration = (240 / (timeSignature.beatLength * tempo)) 	# Calculates the duration of a single beat.
-		timestamp = self.rhythm[self.rhythmIndex]					# Picks a timestamp from the stored rhythm.
-		timestamp *= beatDuration									# Converts the reletave timestamp to an absolute timestamp.
+			self.notesToStore = self.noteList.copy()
 
+		self.timestampList = noteLengthsToNoteTimestamps(self.noteList)
+
+	def play(self, startTime): # Plays the sample according to the rhythm stored in self.rhythm.		
+		timestamp = self.rhythm.timestamp()							# Picks a timestamp from the stored rhythm.
+		timestamp *= eventHandler.beatDuration						# Converts the reletave timestamp to an absolute timestamp.
+		
 		while self.playing:
-			if tempoChange:	# If the tempo is changing, the beat duration and the absolute timestamp get calculated live.					
-				beatDuration = (240 / (timeSignature.beatLength * tempo))
-				timestamp *= beatDuration
+			if tempo.change: # If the tempo is changing, the absolute timestamp is calculated live.					
+				timestamp *= eventHandler.beatDuration
 
-			if currentTime - startTime >= timestamp:		# Checks if the timestamp has passed.
-				self.audiofile.play()
-				self.rhythmIndex += 1
-				timestamp = self.rhythm[self.rhythmIndex]	# Picks a new timestamp from the stored rhythm.
-				timestamp *= beatDuration					# Converts the reletave timestamp to an absolute timestamp.
+			if time.time() - startTime >= timestamp:			# Checks if the timestamp has passed.
+				s = self.audiofile
+				s.play()
+				self.rhythm.position += 1
+				timestamp = self.rhythm.timestamp()				# Picks a new timestamp from the stored rhythm.
+				timestamp *= eventHandler.beatDuration			# Converts the reletave timestamp to an absolute timestamp.
 			else:
 				time.sleep(0.001)
 
-	def startPlayback(self): # Starts the playback of the sample
+	def startPlayback(self, startTime): # Starts the playback of the sample
 		self.playing = True
-		self.playback = t.Thread(target = self.play)
-		self.playback.start()
+		self.playbackThread = t.Thread(target = self.play, args = (startTime,))
+		self.playbackThread.start()
 
 	def stopPlayback(self): # Stops the playback of the sample
 		self.playing = False
-		self.playback.join()
+		try:
+			self.playbackThread.join()
+		except AttributeError:
+			pass
+
+class eventHandlerClass: # Keeps track of the position in the measure and triggers certain events accordingly.
+	def __init__(self):
+		self.measureNumber = 0
+		self.beatDuration = (240 / (timeSignature.beatLength * tempo.value)) 	# Calculates the duration of a single beat.
+
+	def run(self, startTime): # Triggers events according to preprogrammed timestamps.
+		beenRandomized = False
 		
-class timeSignatureClass: # Stores the timesignature and handles timesignature changes
+		while self.running:
+			if tempo.change:	# If the tempo is changing, the beat duration is calculated live.					
+				self.beatDuration = (240 / (timeSignature.beatLength * tempo.value))
+
+			if time.time() - startTime >= self.measureNumber * timeSignature.measureLength * self.beatDuration and not beenRandomized: # This event gets triggered at the exact start of a measure.
+				beenRandomized = True
+				for layer in sampleLayers:
+					layer.randomize()
+			
+			elif time.time() - startTime >= (timeSignature.measureLength + self.measureNumber * timeSignature.measureLength) * self.beatDuration - 0.01: # This event gets triggered 10 ms before the next measure.
+				self.measureNumber += 1				
+				for layer in sampleLayers:
+					layer.addNotes()
+				beenRandomized = False
+			
+			else:
+				time.sleep(0.001)
+
+	def start(self, startTime): # Starts the event handler.
+		self.running = True
+		self.eventHandlerThread = t.Thread(target = self.run, args = (startTime,))
+		self.eventHandlerThread.start()
+
+	def stop(self): # Stops the event handler.
+		self.running = False
+		try:
+			self.eventHandlerThread.join()
+		except AttributeError:
+			pass
+
+class timeSignatureClass: # Stores the timesignature and handles timesignature changes.
 	def __init__(self, value):
 		self.value = value
 		self.measureLength = int(value.split('/')[0])
@@ -328,33 +395,79 @@ class timeSignatureClass: # Stores the timesignature and handles timesignature c
 			else:
 				sampleLayers[i].generateGrids(False)
 
+class rhythmClass: # Stores a rhythm in note lengths and timestamps and where to start the playback.
+	def __init__(self):
+		self.reset()
+
+	def reset(self):
+		self.noteLengths = []
+		self.timestamps = [0]
+		self.position = 0
+
+	def timestamp(self):
+		return self.timestamps[self.position]
+
+class tempoClass: # Stores the tempo and handles temposlides.
+	def __init__(self, value):
+		self.value = value
+		self.change = False
+
+	def set(self, value):
+		self.change = True
+		self.value = value
+		time.sleep(0.01)
+		self.change = False
+
+	def ramp(self, destination, duration):
+		start = self.value
+		increment = (destination - start) / duration
+		for i in range(0, duration):
+			self.value += increment
+			time.sleep(0.001)
+			if not self.change:
+				return
+		self.value = destination
+
+	def slide(self, destination, duration):
+		self.change = True
+		self.tempoSlideThread = t.Thread(target = self.ramp, args = (destination, duration))
+		self.tempoSlideThread.start()
+
+	def stopSlide(self):
+		self.change = False
+		try:
+			self.tempoSlideThread.join()
+		except AttributeError:
+			pass
 
 #-------------------- OBJECTS --------------------#
 noteLengths = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25]
 sampleLayers = [] # A list to store the sample layer classes.
-currentTime = 0 # A global variable to keep track of the current time.
-startTime = inf # A global variable to keep track of the start time. (Defaults to infinity to prevent premature playback)
+sampleLayerNames = ["layer1", "layer2", "layer3"]
 
 #--default settings--#
-tempo = 120
+tempo = tempoClass(120)
 timeSignature = timeSignatureClass("5/4")
-randomizationMode = "static"
+state = "main"
+randomizationMode = "none"
 
 #--initialization--#
+eventHandler = eventHandlerClass()
 sampleLayers.append(sampleLayerClass("Kick.wav", False, 5, 2, 1))
+
 
 #--error messages--#
 sampleNotInAudioFilesFolder = "Sample not available. \nPlease make sure the sample name is spelled correctly and in the audioFiles folder"
 fileNotInSavesFolder = "File not available. \nPlease make sure the file name is spelled correctly and in the saves folder."
 helpfileMissing = "The helpfile could not be found. \nPlease make sure you also downloaded the resources folder and put it in the same directory as the script."
 
-#--misc. variables--#
-tempoChange = False
 
 #--------------------- MAIN ----------------------#
 
-sampleLayers[0].startPlayback()
-time.sleep(1)
-sampleLayers[0].stopPlayback()
+
+
+
+
+
 
 
