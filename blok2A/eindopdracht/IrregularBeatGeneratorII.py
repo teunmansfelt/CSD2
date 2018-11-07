@@ -2,206 +2,43 @@
 #-------------------- IMPORTS --------------------#
 import simpleaudio as sa
 import threading as t
-import time, random
+import time, random, os, webbrowser
 
 
-#------------------- FUNCTIONS -------------------#
-#--rhythm generation--#
-def createProbabilityDistribution(length, centrePosition, spread): # Returns a list of harmonically scaled probabilities
-	#----#
-	# This function returns a list, with a specified length, of probabilities according to a harmonic distribution.
-	# The distrubution is dependant on a centreposition and a spread. The centreposition determines where the highest
-	# probability in the list is. The spread determines how many non-zero probabilities are in the list.
-	#----#
+#--------------------- SETUP ---------------------#
+filesMissing = "Oops!, it seems some files are missing. \n-files missing:"
 
-	probabilityDistribution = []
-	n = spread + 1
-
-	k = 1													
-	while k <= n:											# The code inside these two while-loops will create a list of harmonically scaled probabilities with a specified length n (spread).
-		probabilityDistribution.append(round(k/(n*n), 4))	# The created list will have the following form:
-		k += 1												# [1/n*n,  2/n*n,  3/n*n,  ...,  (n-1)/n*n,  n/n*n,  (n-1)/n*n,  ...,  3/n*n,  2/n*n,  1/n*n].
-	k -= 2													# The term n/n*n will correspond to the highest probability and will therefore be on the centreposition when 
-	while k > 0:											# the probabilityDistribution list is mapped onto the noteProbability list. Since the noteProbability list will have a fixed length,
-		probabilityDistribution.append(round(k/(n*n), 4))	# some elements of the probabilityDistribution list will exceed the bounds of the noteProbability list after mapping.
-		k -= 1
-
-	outOfBounds = 0											
-	if centrePosition - spread < 0:							# Checks if any elements from the probabilityDistribution list would exceed the left bound of the noteProbability list after mapping.
-		for i in range(0, spread - centrePosition):			# Loops through all the elements which exceed the left bound.
-			outOfBounds += probabilityDistribution.pop(0) 	# Adds the value of all the elements which exceed the left bound to the outOfBounds variable and removes them from the probabilityDistribution list.
-
-	if centrePosition + spread > length - 1: 				# Checks if any elements from the probabilityDistribution list would exceed the right bound of the noteProbability list after mapping.					
-		for i in range(0, spread):							# Loops through all the elements which exceed the right bound.
-			outOfBounds += probabilityDistribution.pop(-1)	# Adds the value of all the elements which exceed the right bound to the outOfBounds variable and removes them from the probabilityDistribution list.
-
-	for i, probability in enumerate(probabilityDistribution):								# Distributes the outOfBounds value evenly over the remaining probabilities.
-		probabilityDistribution[i] = probability + outOfBounds/len(probabilityDistribution)	# This ensures all the probabilities will add up to 100% (1.0).
-
-	noteProbabilities = [0]*length								# Initializes the noteProbability list with the default probability of each element set to 0.					
-	for i, probability in enumerate(probabilityDistribution):	# The code inside this for-loop maps the probabilityDistribution list onto the noteProbability list.
-		if centrePosition - spread >= 0:													
-			noteProbabilities[i + centrePosition - spread] = probability
-		else:
-			noteProbabilities[i] = probability
-
-	for i, chance in enumerate(noteProbabilities):								# The code inside this for-loop stacks the noteProbabilities.
-		if i > 0:																# For example: [0, 0.25, 0.5, 0.25, 0, 0, 0, 0] gets turned
-			noteProbabilities[i] = round(chance + noteProbabilities[i-1], 4)	# into [0, 0.25, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0].
-		else:
-			noteProbabilities[i] = round(chance, 4)
-	return noteProbabilities
-
-def pickNote(notes, probabilities): # Returns a note from a list of possible notelengths according to probability
-	x = round(random.uniform(0, 0.9999), 4)		# This random number will determine which notelength is picked.
-	for i, chance in enumerate(probabilities):	# The code inside this for-loop picks a note from the notes list at the index
-		if x < chance:							# at which the probability is bigger than the randomly generated number.
-			return notes[i]
-
-def generatePulseGrid(measureLength): # Returns a grid of pulses according to the timesignature. 
-	#----#
-	# This function will return a grid of pulses according to the timesignature (length of a measure). The pulses
-	# are determined by stacking blocks. The first block always has length 3 and is the followed by blocks of length
-	# 2 or 4 until the measure is completely filled.
-	#----#
-
-	gridPulsePerMeasure = [0]
-
-	gridPulsePerMeasure.append(3)			# Adds the first block (with a length of 3)
-	gridLength = 3
-	
-	while gridLength < measureLength:		# The code inside this while-loop fills the remainig part of the
-		if measureLength - gridLength > 2:	# grid of pulses with blocks of length 2 or 4, until the grid is full.
-			i = (randint(0, 1) + 1) * 2
-		else:
-			i = 2
-		gridPulsePerMeasure.append(i + gridPulsePerMeasure[-1])	# Stacks the pulses. For example, [0, 3, 2, 2] gets turned into [0, 3, 5, 7].
-		gridLength += i
-
-	return gridPulsePerMeasure
-
-def generateNoteList(pulseGrid, noteProbabilities): # Returns a list of notelengths according to the pulses in the measure, note density and variety of possible note lenghts.
-	gridNoteLengths = []
-	sumNoteValues = 0	
-	gridPulsePerMeasure = pulseGrid[1:len(pulseGrid)]	# Copies the relevant part of the pulses per measure.
-
-	measureLength = pulseGrid[-1]						# The last value in the pulseGrid corresponds to the length of the measure
-	while sumNoteValues < measureLength:				# The code inside this while-loop makes sure notes are being added, until the measure is completely filled.
-		nextPulse = gridPulsePerMeasure.pop(0)
-
-		while sumNoteValues < nextPulse:				# Keeps adding notes until the next pulse is reached.
-			noteLength = pickNote(noteLengths, noteProbabilities) # Picks a notelength
-
-			if sumNoteValues + noteLength > nextPulse:	# Checks if the combined notelengths have passed the next pulse.
-				noteLength = nextPulse - sumNoteValues	# Adjusts the notelength so it won't exceed the next pulse if it would otherwise.
-
-			sumNoteValues += noteLength
-			gridNoteLengths.append(noteLength)			# Stores all the picked notes in a list
-
-	return gridNoteLengths
-
-def noteLengthsToNoteTimestamps(noteLengths): # Converts a lis of notelenghts into a list of relative timestamps.
-	gridNoteTimestamps = []
-
-	for i, noteLength in enumerate(noteLengths):
-		if i > 0:
-			gridNoteTimestamps.append(gridNoteTimestamps[i - 1] + noteLength)
-		else:
-			gridNoteTimestamps.append(noteLength)
-
-	return gridNoteTimestamps
-
-#--randomization--#
-def swapNotes(notes, index1, index2): # Swaps two notes
-	notesCopy = notes.copy()
-	note1 = notesCopy[index1]
-	if not index2: # If the second index is false, the second index will be the one after the first index.
-		note2 = notesCopy[index1 + 1]
+while True:
+	missingFiles = []
+	if not os.path.exists("./resources"):
+		missingFiles.append("/resources")
 	else:
-		note2 = notesCopy[index2]
+		if not os.path.exists("./resources/audioFiles"):
+			missingFiles.append("/resources/audioFiles")
+		if not os.path.exists("./resources/helpfile.txt"):
+			missingFiles.append("/resources/helpfile.txt")
+	if not os.path.exists("./saves"):
+		missingFiles.append("/saves")
 
-	notesCopy[index1] = note2
-	if not index2:
-		notesCopy[index1 + 1] = note1
+	if len(missingFiles) > 0:
+		print(filesMissing)
+		for file in missingFiles:
+			print(".   " + file)
+		print("Would you like to download the missing files now? (Y/N)\n(You will be directed to a download page.)")
+
+		while True:
+			entry = input(">>> ")
+			if entry.upper() == "Y":
+				webbrowser.open("https://github.com/teunmansfelt/CSD2/tree/master/blok2A/eindopdracht", new=0, autoraise=True)
+				input("Press the enter key to continue ")
+				break
+			elif entry.upper() == "N":
+				print("The program won't function properly without these files and will now quit itself.")
+				exit()
+			else:
+				print("Unknown command: %s" % entry)
 	else:
-		notesCopy[index2] = note1
-
-	return notesCopy
-
-def glueNotes(notes, index): # Glues two consecutive notes together.
-	notesCopy = notes.copy()
-	notesCopy[index] = notesCopy[index] + notesCopy[index + 1]
-	del notesCopy[index + 1]
-
-	return notesCopy
-
-def splitNotes(notes, index): # Splits a note into two smaller notes.
-	notesCopy = notes.copy()
-	note = notesCopy[index]
-	note1 = note * 0.5
-	note2 = note1
-
-	if note % 0.5 != 0: # Makes sure the outputted notes are a multiple of 0.25.
-		note1 += 0.125
-		note2 -= 0.125
-
-	notesCopy[index] = note1
-	notesCopy.insert(index + 1, note2)
-
-	return notesCopy
-
-#--input validation--#
-def fileAvailable(file_path, error_message): # Checks if a given file can be found/exist.	
-	try:
-		f = open(str(file_path), "r")
-		f.close()
-		return True
-	except FileNotFoundError:
-		print(error_message)
-		return False
-
-def sampleAvailable(file_path, error_message): # Checks if a given sample can be found/exist.
-	try:
-		s = sa.WaveObject.from_wave_file(file_path)
-		return True
-	except FileNotFoundError:
-		print(error_message)
-		return False
-
-def validSignature(timeSignature): # Checks if a given timeSignature is valid.
-	if not timeSignature[1] == '/':
-		return False	
-	timeSignature = timeSignature.split('/')
-
-	try:
-		int(timeSignature[0])
-		if int(timeSignature[0]) % 2 == 0: # Checks if the first number is odd
-			return False
-	except ValueError:
-		return False
-	
-	try:
-		int(timeSignature[1])
-		if not int(timeSignature[1]) % 4 == 0: # Checks if the second number is devisible by 4
-			return False
-	except ValueError:
-		return False
-
-	return True
-
-def isFloat(x): # Checks if an input is a float.
-	try :
-		float(x)
-		return True
-	except ValueError :
-		return False
-
-#--Misc. functions--#
-def goToHelp(subject): # Directs the user to a specified subject in the helpfile.
-	global state
-	print("invalid Argument")
-	state = "help"
-	entry[1] = subject
+		break
 
 
 #-------------------- CLASSES --------------------#
@@ -440,6 +277,197 @@ class tempoClass: # Stores the tempo and handles temposlides.
 		except AttributeError:
 			pass
 
+
+#------------------- FUNCTIONS -------------------#
+#--rhythm generation--#
+def createProbabilityDistribution(length, centrePosition, spread): # Returns a list of harmonically scaled probabilities
+	#----#
+	# This function returns a list, with a specified length, of probabilities according to a harmonic distribution.
+	# The distrubution is dependant on a centreposition and a spread. The centreposition determines where the highest
+	# probability in the list is. The spread determines how many non-zero probabilities are in the list.
+	#----#
+
+	probabilityDistribution = []
+	n = spread + 1
+
+	k = 1													
+	while k <= n:											# The code inside these two while-loops will create a list of harmonically scaled probabilities with a specified length n (spread).
+		probabilityDistribution.append(round(k/(n*n), 4))	# The created list will have the following form:
+		k += 1												# [1/n*n,  2/n*n,  3/n*n,  ...,  (n-1)/n*n,  n/n*n,  (n-1)/n*n,  ...,  3/n*n,  2/n*n,  1/n*n].
+	k -= 2													# The term n/n*n will correspond to the highest probability and will therefore be on the centreposition when 
+	while k > 0:											# the probabilityDistribution list is mapped onto the noteProbability list. Since the noteProbability list will have a fixed length,
+		probabilityDistribution.append(round(k/(n*n), 4))	# some elements of the probabilityDistribution list will exceed the bounds of the noteProbability list after mapping.
+		k -= 1
+
+	outOfBounds = 0											
+	if centrePosition - spread < 0:							# Checks if any elements from the probabilityDistribution list would exceed the left bound of the noteProbability list after mapping.
+		for i in range(0, spread - centrePosition):			# Loops through all the elements which exceed the left bound.
+			outOfBounds += probabilityDistribution.pop(0) 	# Adds the value of all the elements which exceed the left bound to the outOfBounds variable and removes them from the probabilityDistribution list.
+
+	if centrePosition + spread > length - 1: 				# Checks if any elements from the probabilityDistribution list would exceed the right bound of the noteProbability list after mapping.					
+		for i in range(0, spread):							# Loops through all the elements which exceed the right bound.
+			outOfBounds += probabilityDistribution.pop(-1)	# Adds the value of all the elements which exceed the right bound to the outOfBounds variable and removes them from the probabilityDistribution list.
+
+	for i, probability in enumerate(probabilityDistribution):								# Distributes the outOfBounds value evenly over the remaining probabilities.
+		probabilityDistribution[i] = probability + outOfBounds/len(probabilityDistribution)	# This ensures all the probabilities will add up to 100% (1.0).
+
+	noteProbabilities = [0]*length								# Initializes the noteProbability list with the default probability of each element set to 0.					
+	for i, probability in enumerate(probabilityDistribution):	# The code inside this for-loop maps the probabilityDistribution list onto the noteProbability list.
+		if centrePosition - spread >= 0:													
+			noteProbabilities[i + centrePosition - spread] = probability
+		else:
+			noteProbabilities[i] = probability
+
+	for i, chance in enumerate(noteProbabilities):								# The code inside this for-loop stacks the noteProbabilities.
+		if i > 0:																# For example: [0, 0.25, 0.5, 0.25, 0, 0, 0, 0] gets turned
+			noteProbabilities[i] = round(chance + noteProbabilities[i-1], 4)	# into [0, 0.25, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0].
+		else:
+			noteProbabilities[i] = round(chance, 4)
+	return noteProbabilities
+
+def pickNote(notes, probabilities): # Returns a note from a list of possible notelengths according to probability
+	x = round(random.uniform(0, 0.9999), 4)		# This random number will determine which notelength is picked.
+	for i, chance in enumerate(probabilities):	# The code inside this for-loop picks a note from the notes list at the index
+		if x < chance:							# at which the probability is bigger than the randomly generated number.
+			return notes[i]
+
+def generatePulseGrid(measureLength): # Returns a grid of pulses according to the timesignature. 
+	#----#
+	# This function will return a grid of pulses according to the timesignature (length of a measure). The pulses
+	# are determined by stacking blocks. The first block always has length 3 and is the followed by blocks of length
+	# 2 or 4 until the measure is completely filled.
+	#----#
+
+	gridPulsePerMeasure = [0]
+
+	gridPulsePerMeasure.append(3)			# Adds the first block (with a length of 3)
+	gridLength = 3
+	
+	while gridLength < measureLength:		# The code inside this while-loop fills the remainig part of the
+		if measureLength - gridLength > 2:	# grid of pulses with blocks of length 2 or 4, until the grid is full.
+			i = (randint(0, 1) + 1) * 2
+		else:
+			i = 2
+		gridPulsePerMeasure.append(i + gridPulsePerMeasure[-1])	# Stacks the pulses. For example, [0, 3, 2, 2] gets turned into [0, 3, 5, 7].
+		gridLength += i
+
+	return gridPulsePerMeasure
+
+def generateNoteList(pulseGrid, noteProbabilities): # Returns a list of notelengths according to the pulses in the measure, note density and variety of possible note lenghts.
+	gridNoteLengths = []
+	sumNoteValues = 0	
+	gridPulsePerMeasure = pulseGrid[1:len(pulseGrid)]	# Copies the relevant part of the pulses per measure.
+
+	measureLength = pulseGrid[-1]						# The last value in the pulseGrid corresponds to the length of the measure
+	while sumNoteValues < measureLength:				# The code inside this while-loop makes sure notes are being added, until the measure is completely filled.
+		nextPulse = gridPulsePerMeasure.pop(0)
+
+		while sumNoteValues < nextPulse:				# Keeps adding notes until the next pulse is reached.
+			noteLength = pickNote(noteLengths, noteProbabilities) # Picks a notelength
+
+			if sumNoteValues + noteLength > nextPulse:	# Checks if the combined notelengths have passed the next pulse.
+				noteLength = nextPulse - sumNoteValues	# Adjusts the notelength so it won't exceed the next pulse if it would otherwise.
+
+			sumNoteValues += noteLength
+			gridNoteLengths.append(noteLength)			# Stores all the picked notes in a list
+
+	return gridNoteLengths
+
+def noteLengthsToNoteTimestamps(noteLengths): # Converts a lis of notelenghts into a list of relative timestamps.
+	gridNoteTimestamps = []
+
+	for i, noteLength in enumerate(noteLengths):
+		if i > 0:
+			gridNoteTimestamps.append(gridNoteTimestamps[i - 1] + noteLength)
+		else:
+			gridNoteTimestamps.append(noteLength)
+
+	return gridNoteTimestamps
+
+#--randomization--#
+def swapNotes(notes, index1, index2): # Swaps two notes
+	notesCopy = notes.copy()
+	note1 = notesCopy[index1]
+	if not index2: # If the second index is false, the second index will be the one after the first index.
+		note2 = notesCopy[index1 + 1]
+	else:
+		note2 = notesCopy[index2]
+
+	notesCopy[index1] = note2
+	if not index2:
+		notesCopy[index1 + 1] = note1
+	else:
+		notesCopy[index2] = note1
+
+	return notesCopy
+
+def glueNotes(notes, index): # Glues two consecutive notes together.
+	notesCopy = notes.copy()
+	notesCopy[index] = notesCopy[index] + notesCopy[index + 1]
+	del notesCopy[index + 1]
+
+	return notesCopy
+
+def splitNotes(notes, index): # Splits a note into two smaller notes.
+	notesCopy = notes.copy()
+	note = notesCopy[index]
+	note1 = note * 0.5
+	note2 = note1
+
+	if note % 0.5 != 0: # Makes sure the outputted notes are a multiple of 0.25.
+		note1 += 0.125
+		note2 -= 0.125
+
+	notesCopy[index] = note1
+	notesCopy.insert(index + 1, note2)
+
+	return notesCopy
+
+#--input validation--#
+def sampleAvailable(file_path, error_message): # Checks if a given sample can be found/exist and if it's playable.
+	try:
+		s = sa.WaveObject.from_wave_file(file_path)
+		return True
+	except FileNotFoundError:
+		print(error_message)
+		return False
+
+def validSignature(timeSignature): # Checks if a given timeSignature is valid.
+	if not timeSignature[1] == '/':
+		return False	
+	timeSignature = timeSignature.split('/')
+
+	try:
+		int(timeSignature[0])
+		if int(timeSignature[0]) % 2 == 0: # Checks if the first number is odd
+			return False
+	except ValueError:
+		return False
+	
+	try:
+		int(timeSignature[1])
+		if not int(timeSignature[1]) % 4 == 0: # Checks if the second number is devisible by 4
+			return False
+	except ValueError:
+		return False
+
+	return True
+
+def isFloat(x): # Checks if an input is a float.
+	try :
+		float(x)
+		return True
+	except ValueError :
+		return False
+
+#--Misc. functions--#
+def goToHelp(subject): # Directs the user to a specified subject in the helpfile.
+	global state
+	print("invalid Argument")
+	state = "help"
+	entry[1] = subject
+
+
 #-------------------- OBJECTS --------------------#
 noteLengths = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25]
 sampleLayers = [] # A list to store the sample layer classes.
@@ -455,15 +483,12 @@ randomizationMode = "none"
 eventHandler = eventHandlerClass()
 sampleLayers.append(sampleLayerClass("Kick.wav", False, 5, 2, 1))
 
-
 #--error messages--#
-sampleNotInAudioFilesFolder = "Sample not available. \nPlease make sure the sample name is spelled correctly and in the audioFiles folder"
+sampleNotInAudioFilesFolder = "Sample not available. \nPlease make sure the sample name is spelled correctly and in the audioFiles folder."
 fileNotInSavesFolder = "File not available. \nPlease make sure the file name is spelled correctly and in the saves folder."
-helpfileMissing = "The helpfile could not be found. \nPlease make sure you also downloaded the resources folder and put it in the same directory as the script."
 
 
 #--------------------- MAIN ----------------------#
-
 
 
 
