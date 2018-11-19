@@ -192,22 +192,22 @@ class eventHandlerClass: # Keeps track of the position in the measure and trigge
 		self.beatDuration = (240 / (timeSignature.beatLength * tempo.value)) 	# Calculates the duration of a single beat.
 
 	def run(self, startTime): # Triggers events according to preprogrammed timestamps.
-		beenRandomized = False
+		shouldAddNotes = False
 		
 		while self.running:
 			if tempo.change:	# If the tempo is changing, the beat duration is calculated live.					
 				self.beatDuration = (240 / (timeSignature.beatLength * tempo.value))
 
-			if time.time() - startTime >= self.measureNumber * timeSignature.measureLength * self.beatDuration and not beenRandomized: # This event gets triggered at the exact start of a measure.
-				beenRandomized = True
+			if not shouldAddNotes: # This event gets triggered at the start of a new measure.
+				shouldAddNotes = True
 				for layer in sampleLayers:
 					layer.randomize()
-			
-			elif time.time() - startTime >= (timeSignature.measureLength + self.measureNumber * timeSignature.measureLength) * self.beatDuration - 0.01: # This event gets triggered 10 ms before the next measure.
-				self.measureNumber += 1				
-				for layer in sampleLayers:
-					layer.addNotes()
-				beenRandomized = False
+					layer.addNotes() # The stored rhythm is one measure ahead of the played rhythm.
+
+			elif time.time() - startTime >= timeSignature.measureLength * self.beatDuration - 0.01: # This event gets triggered 10 ms before the end of the measure.
+				startTime = time.time()
+				self.measureNumber += 1									
+				shouldAddNotes = False
 			
 			else:
 				time.sleep(0.001)
@@ -533,7 +533,7 @@ randomizationMode = "static"
 
 #--initialization--#
 eventHandler = eventHandlerClass()
-sampleLayers.append(sampleLayerClass("Default1.wav", False, 5, 2, 1))
+sampleLayers.append(sampleLayerClass("Default1.wav", False, 6, 1, 0))
 # sampleLayers.append(sampleLayerClass("Default2.wav", False, 5, 2, 0))
 # sampleLayers.append(sampleLayerClass("Default3.wav", [0, 11], 5, 2, 0))
 
