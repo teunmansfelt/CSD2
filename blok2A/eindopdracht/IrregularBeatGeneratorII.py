@@ -202,13 +202,11 @@ class eventHandlerClass: # Keeps track of the position in the measure and trigge
 				beenRandomized = True
 				for layer in sampleLayers:
 					layer.randomize()
-					test.randomize()
 			
 			elif time.time() - startTime >= (timeSignature.measureLength + self.measureNumber * timeSignature.measureLength) * self.beatDuration - 0.01: # This event gets triggered 10 ms before the next measure.
 				self.measureNumber += 1				
 				for layer in sampleLayers:
 					layer.addNotes()
-					test.addNotes()
 				beenRandomized = False
 			
 			else:
@@ -536,8 +534,8 @@ randomizationMode = "static"
 #--initialization--#
 eventHandler = eventHandlerClass()
 sampleLayers.append(sampleLayerClass("Default1.wav", False, 5, 2, 1))
-sampleLayers.append(sampleLayerClass("Default2.wav", False, 5, 2, 0))
-sampleLayers.append(sampleLayerClass("Default3.wav", [0, 11], 5, 2, 0))
+# sampleLayers.append(sampleLayerClass("Default2.wav", False, 5, 2, 0))
+# sampleLayers.append(sampleLayerClass("Default3.wav", [0, 11], 5, 2, 0))
 
 #--error messages--#
 sampleNotValid = "\nSample not available. \nPlease make sure the sample name is spelled correctly and in the audioFiles folder. \n(For now the program only supports wavfiles with a maximum bitdepth of 16.)\n"
