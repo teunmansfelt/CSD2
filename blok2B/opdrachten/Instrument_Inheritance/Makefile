@@ -1,7 +1,7 @@
 CXX=g++
 CXXFLAGS=-Wall -std=c++14
 LDFLAGS=
-SOURCE=instrument.o main.o
+SOURCE=instrument.o string_instrument.o note_converter.o main.o
 
 ensemble: $(SOURCE)
 	$(CXX) -o $@ $(SOURCE) $(LDFLAGS)
@@ -10,4 +10,4 @@ ensemble: $(SOURCE)
 	$(CXX) -c $(CXXFLAGS) $<
 
 clean:
-	rm -f instrument *.o
+	rm -f *.o
