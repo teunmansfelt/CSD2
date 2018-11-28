@@ -4,7 +4,7 @@
 #include <iostream>
 #include <array>
 
-//An array to store all the note_names.
+//An array to store all the note_names
 std::array<std::string,12> noteNames = {{"C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"}};
 
 //Converts a note to it's midi-number and returns it.
