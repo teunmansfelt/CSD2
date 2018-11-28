@@ -7,12 +7,11 @@ Possible Commands:
 . - noteDensity
 . - noteLengthVariaty
 . - randomization
-. - regenerate
 . - startPlayback
 . - stopPlayback
 .
 . To view the settings of a command, type just the command.
-. For more detailed information on the command, type help followed by the command.
+. For more detailed information on a command, type help followed by the command.
 #
 
 quit
@@ -24,21 +23,21 @@ tempo
 . The tempo command is used as follows:
 . tempo value time
 . - value sets the tempo (range from 30 to 500).
-  - time (optional) sets how long it takes to get to the desired value (in milliseconds).
+. - time (optional) sets how long it takes to get to the desired value (in milliseconds).
 #
 
 timeSignature
 . The timeSignature command is used as follows:
 . timeSignature X/Y
 . - X sets the number of pulses (must be an odd integer greater than or equal to 3).
-  - Y sets the length of the pulse (must be a multiple of 4).
+. - Y sets the length of the pulse (must be a multiple of 4).
 #
 
 sample
 . The sample command is used as follows:
-. sample spectral_range sample_name
-. - range determines weather the ‘low’, ‘mid’, or ‘high’-pitched sound should be altered. (valid spectral_range types: low mid high).
-. - sample_name sets the sample for the specified spectral_range.
+. sample sample_layer sample_name
+. - sample_layer determines which layer gets altered. (valid inputs are layer1, layer2, layer3)
+. - sample_name sets the sample for the specified sample_layer.
 .
 . To view/listen to the samples, type sample followed by the spectral_range.
 #

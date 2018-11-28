@@ -67,7 +67,7 @@ while True:
 
 
 	if insert == 'multithreading':
-#------------ MULTITHREADING ------------#
+#------------ MULTITHREADING -------------#
 		# Bij multithreading worden er meerdere functies sequencieel afgewisseld op het moment dat een
 		# functie vertraging heeft. (De CPU doet dan niks en kan dus andere functies uitvoeren)  
 
@@ -99,18 +99,44 @@ while True:
 				print('devide  ' + str(n / multiplier))
 				time.sleep(3)
 
-		t1 = t.Thread(target=multiply, args=(arr,))
-		t2 = t.Thread(target=devide, args=(arr,))
-		t1.start()
-		t2.start()
+		# currentTime = time.time()
 
-		multiplier = float(input())		# In tegenstelling tot multiprocessing kunnen threads wel
-										# direct met globale variabele werken.
+		# t1 = t.Thread(target=multiply, args=(arr,))
+		# t2 = t.Thread(target=devide, args=(arr,))
+		# t1.start()
+		# t2.start()
 
-		t1.join()
-		t2.join()
+		# print(time.time() - currentTime)
 
-		print("done")
+		# multiplier = float(input())		# In tegenstelling tot multiprocessing kunnen threads wel
+		# 								# direct met globale variabele werken.
+
+		# t1.join()
+		# t2.join()
+
+		# print("done")
+
+		import threading
+		import time
+
+
+		def doit(arg):
+		    t = threading.currentThread()
+		    while getattr(t, "do_run", True):
+		        print ("working on %s" % arg)
+		        time.sleep(1)
+		    print("Stopping as you wish.")
+
+
+		def main():
+		    t = threading.Thread(target=doit, args=("task",))
+		    t.start()
+		    time.sleep(5)
+		    t.do_run = False
+		    t.join()
+
+		if __name__ == "__main__":
+		    main()
 
 
 	if insert == 'open file':
@@ -172,10 +198,21 @@ while True:
 
 				print("done")
 				break
+				
 
+	if insert == 'slide value':
+#------------- SLIDING VALUES ------------#
 		
+		tempo = 100
+		nogiets = 200
 
+		def slideValue(variable, start, end, time_):
+			
+			value = start
+			for i in range(0, time_):
+				value += ((end - start) / time_)
+				variable = value
+				time.sleep(0.001)
 
-
-
-
+		slideValue(tempo, 120, 200, 3000)
+		print(tempo)

@@ -235,11 +235,11 @@ class timeSignatureClass: # Stores the timesignature and handles timesignature c
 		self.measureLength = int(value.split('/')[0])
 		self.beatLength = int(value.split('/')[1])
 
-		for i in range(0, 3): # The code inside this for-loop regenerates the pulseGrids and the noteLists of all the layers.
+		for i, layer in enumerate(sampleLayers): # The code inside this for-loop regenerates the pulseGrids and the noteLists of all the layers.
 			if i == 2:	# The third sampleLayer will get a custom pulseGrid.
-				sampleLayers[i].generateGrids([0, self.measureLength])
+				layer.generateGrids([0, self.measureLength])
 			else:
-				sampleLayers[i].generateGrids(False)
+				layer.generateGrids(False)
 
 class rhythmClass: # Stores a rhythm in note lengths and timestamps and where to start the playback.
 	def __init__(self):
@@ -355,7 +355,7 @@ def generatePulseGrid(measureLength): # Returns a grid of pulses according to th
 	
 	while gridLength < measureLength:		# The code inside this while-loop fills the remainig part of the
 		if measureLength - gridLength > 2:	# grid of pulses with blocks of length 2 or 4, until the grid is full.
-			i = (randint(0, 1) + 1) * 2
+			i = (random.randint(0, 1) + 1) * 2
 		else:
 			i = 2
 		gridPulsePerMeasure.append(i + gridPulsePerMeasure[-1])	# Stacks the pulses. For example, [0, 3, 2, 2] gets turned into [0, 3, 5, 7].
@@ -432,6 +432,10 @@ def splitNotes(notes, index): # Splits a note into two smaller notes.
 	notesCopy.insert(index + 1, note2)
 
 	return notesCopy
+
+#--save files--#
+def createMidiFile():
+	pass
 
 #--input validation--#
 def validSample(sample, error_message): # Checks if a given sample can be found/exist and if it's playable.
@@ -534,13 +538,14 @@ randomizationMode = "static"
 #--initialization--#
 eventHandler = eventHandlerClass()
 sampleLayers.append(sampleLayerClass("Default1.wav", False, 6, 1, 0))
-# sampleLayers.append(sampleLayerClass("Default2.wav", False, 5, 2, 0))
-# sampleLayers.append(sampleLayerClass("Default3.wav", [0, 11], 5, 2, 0))
+sampleLayers.append(sampleLayerClass("Default2.wav", False, 5, 2, 0))
+sampleLayers.append(sampleLayerClass("Default3.wav", [0, timeSignature.measureLength], 5, 2, 0))
 
-#--error messages--#
+#--error/warning messages--#
 sampleNotValid = "\nSample not available. \nPlease make sure the sample name is spelled correctly and in the audioFiles folder. \n(For now the program only supports wavfiles with a maximum bitdepth of 16.)\n"
 fileNotInSavesFolder = "\nFile not available. \nPlease make sure the file name is spelled correctly and in the saves folder."
-
+sureStopPlayback = "\nWhen playback is stopped, the generated rhythm can be saved as a MIDIfile, but will be deleted after. Are you sure you want to stop playback? (Y/N)"
+saveMidi = "\nWould you like to export the generated rhythm as a MIDIfile? (Y/N)"
 
 #--------------------- MAIN ----------------------#
 
@@ -603,6 +608,7 @@ while True: # This while-loop handles the entire main script.
 			print(" - notelength variety: %s" % str(layer.noteLengthVariety))
 			print(" - randomization amount: %s" % str(layer.randomization))
 
+		print('')
 		state = "main"
 
 #--tempo input--#
@@ -637,11 +643,12 @@ while True: # This while-loop handles the entire main script.
 #--timesignature input--#
 	elif state == "timeSignature":
 		if not command[1]: # Checks if the user wants to view or change the timesignature.
-			print("The time signature is curently set to %s" % timeSignature)
+			print("The time signature is curently set to %s" % timeSignature.value)
 			state = "main"
 		else:
 			if validSignature(command[1]):
 				timeSignature.set(command[1])
+				state = "main"
 			else:
 				goToHelp("timeSignature")
 
@@ -707,4 +714,41 @@ while True: # This while-loop handles the entire main script.
 		time.sleep(0.5)
 		state = "main"
 
+#--stop playback--#
+	elif state == "stopPlayback":		
+		print(sureStopPlayback)
+		
+		while True:
+			entry = input(">>> ")
+			if entry.upper() == "Y":
+				for layer in sampleLayers:
+					layer.stopPlayback()
+				eventHandler.stop()
+				print(saveMidi)
+				
+				while True:
+					print("1")
+					entry = input(">>> ")
+					if entry.upper() == "Y":
+						createMidiFile()
+					elif entry.upper() == "N":
+						break
+					else:
+						print("Unknown command: %s" % entry)
+				break
+
+			elif entry.upper() == "N":
+				break
+			else:
+				print("Unknown command: %s" % entry)
+
+		for i, layer in enumerate(sampleLayers):
+			layer.rhythm.reset()
+			if i == 2:	# The third sampleLayer will get a custom pulseGrid.
+				layer.generateGrids([0, timeSignature.measureLength])
+			else:
+				layer.generateGrids(False)
+			layer.addNotes()
+
+		state = "main"
 

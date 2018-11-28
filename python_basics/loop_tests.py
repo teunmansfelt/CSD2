@@ -88,6 +88,12 @@ while running:
 				print('%d * %d = %d' % (x, y, x * y))
 		print('')
 
+		#5 loop through items in a lists
+		print('#5')
+		lst = ['a', 'b', 'c', 'd']
+		for x in lst :
+			print(x)
+		print('')
 
 #--------------STRINGS-------------#
 	if(insert == 'strings') :

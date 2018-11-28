@@ -23,9 +23,29 @@ state = 'main'
 # 		times -= 1
 
 def playRhythm(file_path, times, rhythm, tempo) :  # Plays an audiofile in a specific rhythm.
-	print('hoi')
+	while(times > 0) : 
+		secPerBeat = 60/tempo # Converts BPM to seconds per beat
 
-def playFile(file_path) : # Plays an audiofile
+		for n in range(0, len(rhythm)) :
+			lastSymbol = len(rhythm[n]) - 1
+			if(rhythm[n][lastSymbol] == '.') : # Makes sure dotted notes get multiplied by 1.5
+				note = float(rhythm[n]) / 1.5
+			else :
+				note = float(rhythm[n])
+			
+			amountOfBeats = 4 / note # Converts note-name to the amount of beats
+			duration = amountOfBeats * secPerBeat # Calculates the time a note lasts in seconds
+
+			playFile(file_path, duration)
+
+		times -= 1
+
+def playFile(file_path, duration) : # Plays an audiofile for a specified duration
+	wave_obj = sa.WaveObject.from_wave_file(file_path)
+	play_obj = wave_obj.play()
+	time.sleep(duration)
+
+def playWholeFile(file_path) : # Plays an audiofile entirely
 	wave_obj = sa.WaveObject.from_wave_file(file_path)
 	play_obj = wave_obj.play()
 	play_obj.wait_done()
@@ -39,7 +59,7 @@ def isFloat(x) : # Checks if an input is a float
 
 def validSample(x) : # Checks if a sample can be found/exists
 	try :
-		playFile(x)
+		playWholeFile(x)
 		return True
 	except :
 		return False	
