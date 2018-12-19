@@ -24,22 +24,6 @@ Oscillator::~Oscillator() {
 void Oscillator::tick() {
   wavetable_position += frequency * 2;
   wavetable_position = wavetable_position % wavetable_length;
-
-  if(new_amplitude) {
-    if(next_amplitude - amplitude > 0) {
-      amplitude += 0.005;
-      if(amplitude >= next_amplitude) {
-        amplitude = next_amplitude;
-        new_amplitude = false;
-      }
-    } else {
-      amplitude -= 0.005;
-      if(amplitude <= next_amplitude) {
-        amplitude = next_amplitude;
-        new_amplitude = false;
-      }
-    }
-  }
 }
 
 void Oscillator::reset_phase() {
@@ -53,8 +37,9 @@ void Oscillator::set_frequency(float frequency) {
   }
 }
 void Oscillator::set_amplitude(double amplitude) {
-  next_amplitude = amplitude;
-  new_amplitude = true;
+  if(amplitude >= 0 && amplidute <= 1) {
+    this->amplitude = amplitude;
+  }
 }
 
 // -- Getters -- //
