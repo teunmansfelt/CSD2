@@ -3,22 +3,24 @@
 #define OSCILLATOR_H
 
 #include <iostream>
-#include <vector>
+#include <array>
 #include "voice_cluster.hpp"
 #include "wavetable.hpp"
 
 class Oscillator {
 protected:
-  Oscillator(int samplerate, int polyphony);
+  Oscillator(int polyphony);
   ~Oscillator();
 
-  Wavetable wavetable;
+  void tick();
+  double get_sample_L();
+  double get_sample_R();
 
-public:
+  Wavetable* wavetable;
 
 private:
-  int samplerate;
-  std::vector<Voice_Cluster> voices;
+  std::array<Voice_Cluster*, 12> voice_clusters;
+  int polyphony;
 };
 
 #endif

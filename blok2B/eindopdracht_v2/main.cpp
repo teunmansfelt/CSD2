@@ -3,6 +3,6 @@
 #include "sine.hpp"
 
 int main(int argc, char **argv) {
-  Sine sine(48000, 3);
+  Sine sine1(44100, 3);
   return 0;
 };

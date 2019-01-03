@@ -2,12 +2,12 @@
 #include <iostream>
 #include <vector>
 #include "sine.hpp"
-#include "sine_wavetable.hpp"
+// #include "sine_wavetable.hpp"
 
 Sine::Sine(int samplerate) : Sine(samplerate, 6) {}
-Sine::Sine(int samplerate, int polyphony) : Oscillator(samplerate, polyphony) {
+Sine::Sine(int samplerate, int polyphony) : Oscillator(polyphony) {
   std::cout << "Sine - Constructor" << std::endl;
-  this->wavetable = Sine_Wavetable(samplerate);
+  *this->wavetable = Sine_Wavetable(samplerate);
 }
 
 Sine::~Sine() {}

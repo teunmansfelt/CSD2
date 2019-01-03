@@ -5,6 +5,7 @@
 #include <iostream>
 #include <vector>
 #include "oscillator.hpp"
+#include "sine_wavetable.hpp"
 
 class Sine : public Oscillator{
 public:
