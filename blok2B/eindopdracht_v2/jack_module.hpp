@@ -5,8 +5,8 @@
 #
 */
 
-#ifndef _JACK_MODULE_H_
-#define _JACK_MODULE_H_
+#ifndef JACK_MODULE_H
+#define JACK_MODULE_H
 
 #include <string>
 #include <functional>

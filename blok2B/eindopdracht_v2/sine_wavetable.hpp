@@ -11,11 +11,6 @@ class Sine_Wavetable : public Wavetable {
 public:
   Sine_Wavetable(int samplerate);
   ~Sine_Wavetable();
-
-  Sine_Wavetable();
-
-private:
-  void calculate_wavetable() override;
 };
 
 #endif

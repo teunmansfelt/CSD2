@@ -11,11 +11,9 @@ protected:
   double* wavetable;
 
 public:
-  Wavetable();
   ~Wavetable();
-
-private:
-  virtual void calculate_wavetable() = 0;
+  double* get_wavetable_address();
+  int get_wavetable_length();
 };
 
 

@@ -1,6 +1,17 @@
 
+#include <math.h>
 #include <iostream>
+#include <thread>
+
+using namespace std;
+
+void threadFn(){
+    cout<<"I am inside a thread fucntion"<<endl;
+}
 
 int main() {
-  return 0;
-};
+    thread t1 (threadFn);
+
+    t1.join();
+    return 0;
+}

@@ -1,10 +1,6 @@
 
 #include <iostream>
-#include <vector>
 #include "wavetable.hpp"
-
-
-Wavetable::Wavetable() {}
 
 Wavetable::Wavetable(int samplerate) {
   std::cout << "Wavetable - Constructor " << samplerate << std::endl;
@@ -13,4 +9,12 @@ Wavetable::Wavetable(int samplerate) {
 
 Wavetable::~Wavetable() {
   std::cout << "Wavetable - Destructor " << std::endl;
+}
+
+double* Wavetable::get_wavetable_address() {
+  return this->wavetable;
+}
+
+int Wavetable::get_wavetable_length() {
+  return this->wavetable_length;
 }
