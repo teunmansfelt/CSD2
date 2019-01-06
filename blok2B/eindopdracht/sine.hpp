@@ -11,8 +11,8 @@
 class Sine : public Oscillator {
 public:
   //-- Constructor Destructor  --//
-  Sine(int samplerate, float frequency);
-  Sine(int samplerate, float frequency, float phase, double amplitude);
+  Sine(int samplerate);
+  Sine(int samplerate, double amplitude, int polyphony);
   ~Sine();
 
   Sine() = delete;

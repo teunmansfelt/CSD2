@@ -11,6 +11,8 @@ class Square_Wavetable : public Wavetable {
 public:
   Square_Wavetable(int samplerate);
   ~Square_Wavetable();
+
+  Square_Wavetable() = delete;
 };
 
 #endif

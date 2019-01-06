@@ -3,12 +3,11 @@
 #include "wavetable.hpp"
 
 Wavetable::Wavetable(int samplerate) {
-  std::cout << "Wavetable - Constructor " << samplerate << std::endl;
-  this->wavetable_length = samplerate * 2;
+  this->wavetable_length = samplerate;
 }
 
 Wavetable::~Wavetable() {
-  std::cout << "Wavetable - Destructor " << std::endl;
+  delete this->wavetable;
 }
 
 double* Wavetable::get_wavetable_address() {

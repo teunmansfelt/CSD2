@@ -2,13 +2,14 @@
 #ifndef OSCILLATOR_H
 #define OSCILLATOR_H
 
+#include "voice_cluster.hpp"
+
 #include <iostream>
-#include <array>
 
 class Oscillator {
 protected:
   //-- Constructor Destructor  --//
-  Oscillator(int samplerate, float frequency, float phase, double amplitude);
+  Oscillator(int samplerate, double amplitude, int polyphony, int unison);
   virtual ~Oscillator();
 
   //--protected fields --//
@@ -16,32 +17,22 @@ protected:
   int wavetable_length;
 
 public:
-  //-- Sample --//
-  void tick();
-  void reset_phase();
-
-  //-- Setters --//
-  void set_frequency(float frequency);
   void set_amplitude(double amplitude);
-
-  //-- Getters --//
-  double get_sample();
-  float get_frequency();
-  double get_amplitude();
+  void set_polyphony(int number_of_voices);
+  void set_unison(int number_of_unison_voices);
 
 private:
   //-- private methods --//
   virtual void calculate_wavetable() = 0;
 
   //-- private fields --//
-  int wavetable_position;
   int samplerate;
-  float frequency;
-  float phase;
-
   double amplitude;
-  double next_amplitude;
-  bool new_amplitude;
+
+  Voice_Cluster* voices;
+  int voice_index;
+  int polyphony;
+  int unison;
 };
 
 #endif

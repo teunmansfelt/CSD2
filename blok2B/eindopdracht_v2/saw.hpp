@@ -3,7 +3,6 @@
 #define SAW_H
 
 #include <iostream>
-#include <vector>
 #include "oscillator.hpp"
 #include "saw_wavetable.hpp"
 

@@ -9,7 +9,7 @@
 #define _JACK_MODULE_H_
 
 #include <string>
-#include <iostream>
+#include <functional>
 #include <jack/jack.h>
 
 class JackModule
@@ -23,13 +23,14 @@ public:
   void autoConnect();
   void end();
   //the onProcess function that needs to be assigned to a JackModule object
-  std::function <int(jack_default_audio_sample_t *,
-     jack_default_audio_sample_t *, jack_nframes_t)> onProcess;
+  std::function <int(jack_default_audio_sample_t **, jack_default_audio_sample_t **,jack_nframes_t)> onProcess;
 
 private:
-  static int _wrap_jack_process_cb(jack_nframes_t nframes,void *arg);
   jack_client_t *client;
-  const char **ports;
+  static int _wrap_jack_process_cb(jack_nframes_t nframes,void *arg);
+  jack_port_t** registerPorts(int numPorts, std::string name, JackPortFlags portFlag);
+  void connectPorts(jack_port_t** sourcePorts, int numPorts, JackPortFlags targetPortFlag);
+  const char** getPorts(unsigned long flags);
 };
 
 #endif

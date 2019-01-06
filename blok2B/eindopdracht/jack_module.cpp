@@ -10,15 +10,20 @@
 #include <unistd.h> // usleep
 //TEMP - remove
 #include "math.h"
-#include "jack_module.hpp"
+#include "jack_module.h"
 
 // prototypes & globals
 static void jack_shutdown(void *);
-static jack_port_t *input_port,*output_port;
+static jack_port_t **input_ports,**output_ports;
+static int numPorts = 2;
+static jack_default_audio_sample_t **inBuffers;
+static jack_default_audio_sample_t **outBuffers;
 
 
 JackModule::JackModule()
 {
+  inBuffers = new jack_default_audio_sample_t*[numPorts];
+  outBuffers = new jack_default_audio_sample_t*[numPorts];
 } // JackModule()
 
 JackModule::~JackModule()
@@ -52,11 +57,9 @@ int JackModule::init(std::string clientName)
   // Install the callback wrapper
   jack_set_process_callback(client,_wrap_jack_process_cb,this);
 
-  //Create an output and input port for the client.
-  output_port =
-    jack_port_register(client,"output",JACK_DEFAULT_AUDIO_TYPE,JackPortIsOutput,0);
-  input_port =
-    jack_port_register(client,"input",JACK_DEFAULT_AUDIO_TYPE,JackPortIsInput,0);
+  //register output and input ports for the client.
+  input_ports = registerPorts(numPorts, "input", JackPortIsInput);
+  output_ports = registerPorts(numPorts, "output", JackPortIsOutput);
 
   //Tell the Jack server that the program is ready to start processing audio.
   if(jack_activate(client)) {
@@ -67,11 +70,35 @@ int JackModule::init(std::string clientName)
   return 0;
 } // init()
 
-//returns the jack_clients samplerate
-unsigned long JackModule::getSamplerate()
+jack_port_t**  JackModule::registerPorts(int numPorts, std::string name, JackPortFlags portFlag) {
+  /* jack_port_register function parameters:
+  jack_client_t * 	client,
+  const char * 	port_name,
+  const char * 	port_type,
+  unsigned long 	flags,
+  unsigned long 	buffer_size*/
+  jack_port_t** ports = (jack_port_t **) malloc (sizeof (jack_port_t *) * numPorts);
+
+  for(int i = 0; i < numPorts; i++) {
+    if ((ports[i] = jack_port_register (client, (name + "_" + std::to_string(i)).c_str() , JACK_DEFAULT_AUDIO_TYPE, portFlag, 0)) == 0) {
+      std::cout << "Can not register port: " << name << "\n";
+      jack_client_close (client);
+      exit (1);
+    }
+  }
+  return ports;
+}
+
+const char** JackModule::getPorts(unsigned long flags)
 {
-  return jack_get_sample_rate(client);
-} // getSamplerate()
+  const char **ports;
+  if((ports = jack_get_ports(client,NULL,NULL,flags)) == NULL)
+  {
+    std::cout << "Cannot find any physical output ports" << std::endl;
+    exit(1);
+  }
+  return ports;
+}
 
 
 void JackModule::autoConnect()
@@ -85,53 +112,50 @@ void JackModule::autoConnect()
       << "________________________\n\n";
     exit(1);
   }
+  const char **output_target_ports = getPorts(JackPortIsPhysical|JackPortIsInput);
+  const char **input_target_ports = getPorts(JackPortIsOutput);
 
-  /*
-   * Try auto-connect our output
-   *
-   * NB: JACK considers reading from an output and sending to an input
-   */
-  if((ports = jack_get_ports(client,"system",NULL,JackPortIsInput)) == NULL)
-  {
-    std::cout << "Cannot find any physical output ports" << std::endl;
-    exit(1);
+  for(int i = 0; i < numPorts; i++) {
+    if(jack_connect(client,jack_port_name(output_ports[i]), output_target_ports[i]))
+    {
+      std::cout << "Cannot connect port: " << jack_port_name(output_ports[i])
+        << ", to system port: " << output_target_ports[i] << std::endl;
+    }
+    if(jack_connect(client, input_target_ports[i], jack_port_name(input_ports[i])))
+    {
+      std::cout << "Cannot connect port: " << jack_port_name(input_ports[i])
+        << ", to system port: " << input_target_ports[i] << std::endl;
+    }
   }
-
-  if(jack_connect(client,jack_port_name(output_port),ports[0]))
-  {
-    std::cout << "Cannot connect output ports" << std::endl;
-  }
-
-  if(jack_connect(client,jack_port_name(output_port),ports[1]))
-  {
-    std::cout << "Cannot connect output ports" << std::endl;
-  }
-
-  free(ports); // ports structure no longer needed
-
-  /*
-   * Try auto-connect our input
-   */
-  if((ports = jack_get_ports(client,NULL,NULL,JackPortIsPhysical|JackPortIsOutput)) == NULL)
-  {
-    std::cout << "Cannot find any physical capture ports" << std::endl;
-    exit(1);
-  }
-
-  if(jack_connect(client,ports[0],jack_port_name(input_port)))
-  {
-    std::cout << "Cannot connect input ports" << std::endl;
-  }
-
-  free(ports); // ports structure no longer needed
+  free(output_target_ports);
+  free(input_target_ports);
 } // autoConnect()
+
+
+
+
+//returns the jack_clients samplerate
+unsigned long JackModule::getSamplerate()
+{
+  return jack_get_sample_rate(client);
+} // getSamplerate()
+
+
 
 /* Deactivate jack and disconnect jack ports*/
 void JackModule::end()
 {
   jack_deactivate(client);
-  jack_port_disconnect(client,input_port);
-  jack_port_disconnect(client,output_port);
+  for(int i = 0; i < numPorts; i++) {
+    jack_port_disconnect(client,input_ports[i]);
+    jack_port_disconnect(client,output_ports[i]);
+    free(outBuffers[i]);
+    free(inBuffers[i]);
+  }
+  delete outBuffers;
+  outBuffers = nullptr;
+  delete inBuffers;
+  inBuffers = nullptr;
 } // end()
 
 
@@ -139,10 +163,12 @@ void JackModule::end()
 int JackModule::_wrap_jack_process_cb(jack_nframes_t nframes,void *arg)
 {
   // retrieve in and out buffers
-  jack_default_audio_sample_t *inBuf = (jack_default_audio_sample_t *)jack_port_get_buffer(input_port,nframes);
-  jack_default_audio_sample_t *outBuf = (jack_default_audio_sample_t *)jack_port_get_buffer(output_port,nframes);
+  for(int i = 0; i < numPorts; i++) {
+    inBuffers[i] = (jack_default_audio_sample_t *)jack_port_get_buffer(input_ports[i],nframes);
+    outBuffers[i] = (jack_default_audio_sample_t *)jack_port_get_buffer(output_ports[i],nframes);
+  }
   //call the onProcess function, that is assigned to the object
-  return ((JackModule *)arg)->onProcess(inBuf, outBuf, nframes);
+  return ((JackModule *)arg)->onProcess(inBuffers, outBuffers, nframes);
 } // _wrap_jack_process_cb()
 
 

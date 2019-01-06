@@ -3,7 +3,6 @@
 #define SQUARE_H
 
 #include <iostream>
-#include <vector>
 #include "oscillator.hpp"
 #include "square_wavetable.hpp"
 

@@ -3,7 +3,6 @@
 #define SINE_H
 
 #include <iostream>
-#include <vector>
 #include "oscillator.hpp"
 #include "sine_wavetable.hpp"
 

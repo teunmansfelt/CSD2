@@ -11,6 +11,8 @@ class Saw_Wavetable : public Wavetable {
 public:
   Saw_Wavetable(int samplerate);
   ~Saw_Wavetable();
+
+  Saw_Wavetable() = delete;
 };
 
 #endif

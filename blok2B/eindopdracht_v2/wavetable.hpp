@@ -16,5 +16,4 @@ public:
   int get_wavetable_length();
 };
 
-
 #endif
