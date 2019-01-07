@@ -6,26 +6,26 @@
 #include "wavetable.hpp"
 
 class Voice {
-public:
+protected:
   Voice(Wavetable* wavetable_p);
-  ~Voice();
-// protected:
-//   Voice(Wavetable* wavetable_p);
-//   virtual ~Voice();
+  virtual ~Voice();
+  Voice() = delete;
 
-  void tick(); //later virtual
-  double get_sample_L();
-  double get_sample_R();
-
-  void set_frequency(float frequency);
-
-private:
   Wavetable* wavetable_p; //pointer to the wavetable_object of the oscillator.
-  double* sample; //pointer to actual wavetable_array.
-  int wavetable_position; //sample_position in the wavetable_array.
-  int wavetable_length; //length of the wavetable_array.
 
-  float frequency;
+  int tick_step;
+
+public:
+  virtual void tick() = 0;
+  virtual void set_tick_step(int step, int step_offset) = 0;
+
+  virtual double get_sample() = 0;
+  virtual double get_sample_L() = 0;
+  virtual double get_sample_R() = 0;
+
+  virtual void reset_wavetable() = 0;
+
+  virtual void set_channel_multipliers(double multiplier_L, double multiplier_R) = 0;
+  virtual void set_num_voices(int number_of_voices) = 0;
+  virtual void set_phase_offset(int offset) = 0;
 };
-
-#endif
