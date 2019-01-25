@@ -7,10 +7,12 @@ import time, random, math, os			# Miscellaneous libraries
 #-------------------- CLASSES --------------------#
 class rhythm_player_class:  # Class to handle the playback of a rhythm.
 	def __init__(self, audiofile, custom_grid=None):
+		self.sample = audiofile
 		self.audiofile = sa.WaveObject.from_wave_file("resources/audioFiles/{0}".format(audiofile))    # Sample (playback) object.
 		self.rhythm = rhythm_class(custom_grid)    # Object to handle rhythm generation and rhythm storage.
 
 	def set_sample(self, audiofile):
+		self.sample = audiofile
 		self.audiofile = sa.WaveObject.from_wave_file("resources/audioFiles/{0}".format(audiofile))
 
 	def play(self, start_time):    # sample playback function.
@@ -42,6 +44,21 @@ class rhythm_player_class:  # Class to handle the playback of a rhythm.
 
 	def stop_playback(self):
 		self.playing = False    # Break the loop in the playback function. (kills the playback thread)
+
+	def set_rhythm_density(self, value):
+		self.rhythm.rhythm_density = value
+		self.rhythm.create_rhythm()
+		self.rhythm.timestamps = notes_to_timestamps(self.rhythm.notes)
+		self.rhythm.timestamps_to_add = self.rhythm.timestamps.copy()
+
+	def set_note_diversity(self, value):
+		self.rhythm.note_diversity = value
+		self.rhythm.create_rhythm()
+		self.rhythm.timestamps = notes_to_timestamps(self.rhythm.notes)
+		self.rhythm.timestamps_to_add = self.rhythm.timestamps.copy()
+
+	def set_randomization(self, value):
+		self.rhythm.randomization = value
 
 class rhythm_class:  # Class to handle rhythm generation and rhythm storage.
 	def __init__(self, custom_grid):
@@ -202,10 +219,15 @@ class gui_class:  # Class to handle the user interface.
 		self.bar = "_"
 		self.line = 0    # Variable to keep track of which line the curser is on.
 
-	def init(self):
+	def init(self):    # Initialize the gui.
 		c.initscr()    # Inits a blank terminal screen.
 		c.reset_shell_mode()	
 		print("\nIrregular Beat Generator III   -   by: Teun Mansfelt")
+		print("{0}\noverview:".format(self.bar*53))
+		print("  Time signature     : {0}\n  Tempo              : {1}\n  Randomization mode : {2}".format(time_signature.value, tempo.value, randomization_mode))
+		for i, player in enumerate(rhythm_players):
+			print("\n  Layer{0}:\n  - Sample         : {1}\n  - Rhythm density : {2}\n  - Note diversity : {3}\n  - Randomization  : {4}"
+			.format(i+1, player.sample, player.rhythm.rhythm_density, player.rhythm.note_diversity, player.rhythm.randomization)) 
 		print("{0}\ncommand execution:".format(self.bar*53))
 
 	def go_up(self, x, mode=None):    # Make the curser go up x lines.
@@ -229,7 +251,7 @@ class gui_class:  # Class to handle the user interface.
 		return command
 
 	def unknown_command(self, command):    # Proces unknown user input.
-		print("!! Unknown command : {0}".format(command))
+		print("!! Unknown command : '{0}'".format(command))
 		self.line += 1
 
 	def set_tempo(self):    # Set or slide the tempo.
@@ -237,7 +259,7 @@ class gui_class:  # Class to handle the user interface.
 		self.go_up(2)
 		value = -1	
 		self.line += 1
-		while(value == -1):    # Keep looping untill a valid input is given.
+		while(value == -1):    # Keep looping until a valid input is given.
 			self.line -= 1
 			print("\033[K", end="")
 			value = input("  - Value: ")    # Ask for input.
@@ -272,14 +294,16 @@ class gui_class:  # Class to handle the user interface.
 		except ValueError:    # Set the tempo if the duration wasn't a non-zero positive integer.
 			tempo.set(value)    # Set the new tempo.
 			print("\nTempo value set to: {0}.".format(value))
-		self.line += 2
+		self.go_up(26)
+		print("  Tempo              : {0}".format(value))
+		self.line -= 23
 
 	def set_timesignature(self):    # Set the time signature.
 		print("\n  - Pulse length:")
 		self.go_up(2)
 		value1 = -1
 		self.line += 1
-		while(value1 == -1):    # Keep looping untill a valid input is given.
+		while(value1 == -1):    # Keep looping until a valid input is given.
 			self.line -= 1
 			print("\033[K", end="")
 			value1 = input("  - Number of pulses: ")    # Ask for input.
@@ -299,7 +323,7 @@ class gui_class:  # Class to handle the user interface.
 
 		value2 = -1
 		self.line += 1
-		while(value2 == -1):    # Keep looping untill a valid input is given.
+		while(value2 == -1):    # Keep looping until a valid input is given.
 			self.line -= 1
 			print("\033[K", end="")
 			value2 = input("  - Pulse length: ")    # Ask for input.
@@ -324,7 +348,9 @@ class gui_class:  # Class to handle the user interface.
 		time_signature.set(value1, value2)    # Set the new time signature.
 		print("\033[K", end="")
 		print("\nTime signature set to : {0}.".format(time_signature.value))
-		self.line += 2
+		self.go_up(27)
+		print("  Time signature     : {0}".format(time_signature.value))
+		self.line -= 24
 
 	def set_samples(self):    # Set the audiofiles used for playback.
 		self.sample_list = []    # Initialize a list for all available samples.
@@ -335,7 +361,7 @@ class gui_class:  # Class to handle the user interface.
 		num_of_pages = math.ceil(len(self.sample_list) / 10)    # Calculate the number of needed pages.
 		self.show_sample_page(1, num_of_pages)    # Display the first page.
 
-		print("\n  Sample 2 :")
+		print("\n\n  Sample 2 :")
 		print("  Sample 3 :")
 		self.go_up(3)
 		samples = []
@@ -343,7 +369,7 @@ class gui_class:  # Class to handle the user interface.
 		for i, player in enumerate(rhythm_players):    # Loop through all rhythm players.
 			sample = None
 			self.line += 1
-			while(True):    # Keep looping untill a valid input is given.
+			while(True):    # Keep looping until a valid input is given.
 				self.line -= 1
 				print("\033[K", end="")
 				sample = input("  Sample {0} : ".format(i + 1))
@@ -351,13 +377,13 @@ class gui_class:  # Class to handle the user interface.
 				if(sample == "exit"):    # Exit the loop.
 					self.go_down(24 - self.line)
 					self.go_up(13, "delete")
-					self.go_up(11 - self.line)
+					self.go_up(10 - self.line)
 					return
 				elif(sample == ""):    # Skip this element.
 					if(i == 2):    # Clear the terminal after the last rhythm player.
 						self.go_down(24 - self.line)
 						self.go_up(13, "delete")
-						self.go_up(11 - self.line)
+						self.go_up(10 - self.line)
 					break
 				elif(sample.startswith("page ")):    # Go to a different page of samples.
 					try:
@@ -375,18 +401,89 @@ class gui_class:  # Class to handle the user interface.
 						self.go_up(4 - i)
 				elif(valid_sample(sample)):    # Check if the input is valid.
 					player.set_sample(sample)    # Set the audiofile of the rhythm player to the sample.
-					self.go_down(3 - i)
+					self.go_up(19 - 5 * i)
+					print("  - Sample         : {0}".format(sample))
+					self.go_down(21 - 6 * i)
 					print("\033[K", end="Sample {0} set succesfully.".format(i + 1))
 					self.go_up(3 - i)
 					if(i == 2):    # Clear the terminal after the last rhythm player.
 						self.go_down(24 - self.line)
 						self.go_up(13, "delete")
-						self.go_up(11 - self.line)
+						self.go_up(10 - self.line)
 					break
 				else:
 					self.go_down(3 - i)
 					print("\033[K", end="!! Invalid sample : {0}".format(sample))
 					self.go_up(4 - i)
+
+	def edit_layer(self, layer):    # Sets the parameters of a rhythm player.
+		try:
+			layer = int(layer)    # Make sure the layer is valid.
+			if(layer < 1 or layer > 3):
+				int('a')
+		except ValueError:
+			print("!! Invalid layer : {0}".format(layer))
+			return
+
+		print("\n  - Note diversity :")
+		print("  - Randomization  :")
+		self.go_up(3)
+
+		parameters = [["Rhythm density", len(notes) - 1, "set_rhythm_density({0})"], # List to store parameter names, bounds and function setters.
+					  ["Note diversity", 100, "set_note_diversity({0})"], 
+					  ["Randomization " , 2, "set_randomization({0})"]]
+
+		for i in range(0, 3):
+			value = -1
+			self.line += 1
+			while(value == -1):    # Keep looping until a valid input is given.
+				self.line -= 1
+				print("\033[K", end="")
+				value = input("  - {0} : ".format(parameters[i][0]))    # Ask for input.
+				self.line += 1
+				if(value == "exit"):    # Exit the loop.
+					return
+				if(value == ""):    # Skip this element.
+					break
+				try:
+					value = int(value)    # Make sure the input is an integer.
+					if(value < 0 or value > parameters[i][1]):    # Check the bounds.
+						self.go_down(3)
+						print("!! {0} can range from 0 to {1}".format(parameters[i][0], parameters[i][1]))
+						self.go_up(5)
+						value = -1
+				except ValueError:
+					self.go_down(4 - self.line)
+					print("!! {0} must be an integer.".format(parameters[i][0]))
+					self.go_up(6 - self.line)
+					value = -1
+			if(value != ""):    # Set the parameter if it isn't skipped.
+				exec("rhythm_players[{0}].{1}".format(layer - 1, parameters[i][2].format(value)))    # Set the parameter.
+				self.go_down(4 - self.line)
+				print("{0} set succesfully.".format(parameters[i][0]))
+				self.go_up(29 - 6 * layer - self.line)
+				print("  - {0} : {1}".format(parameters[i][0], value))
+				self.go_down(23 - 6 * layer)
+
+	def set_randomization_mode(self):    # Sets the type of randomization.
+		mode = None
+		self.line += 1
+		while(not mode):    # Keep looping until a valid input is given.
+			self.line -= 1
+			mode = input("  - Randomization mode : ")    # Ask for input.
+			self.line += 1
+			if(mode == "exit"):    # Exit the loop.
+				return
+			elif(mode == "static" or mode == "evolve"):    # Check if the input is valid.
+				randomization_mode = mode    # Set randomization.
+				print("\nRandomization mode set to : {0}".format(mode))
+				self.go_up(24)
+				print("  Randomization mode : {0}".format(mode))
+				self.line -= 21
+			else:
+				print("\n!! Invalid randomization mode. \n  - Valid modes: 'static', 'evolve'")
+				mode = None
+				self.go_up(4)
 
 	def show_sample_page(self, page, num_of_pages):    # Show all available samples.
 		self.go_down(24 - self.line)
@@ -548,8 +645,12 @@ while(True):
 	elif(command == "set samples"):
 		gui.set_samples()
 
-	elif(command == "sample list"):
-		gui.sample_list()
+	elif(command.startswith("edit layer ")):
+		layer = command.split(' ')[2]
+		gui.edit_layer(layer)
+
+	elif(command == "set randomization mode"):
+		gui.set_randomization_mode()
 	
 	elif(command == "start playback"):
 		start_time = time.time() + 0.1
