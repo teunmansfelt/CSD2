@@ -237,16 +237,16 @@ class gui_class:  # Class to handle the user interface.
 		self.go_up(2)
 		value = -1	
 		self.line += 1
-		while(value == -1):
+		while(value == -1):    # Keep looping untill a valid input is given.
 			self.line -= 1
 			print("\033[K", end="")
-			value = input("  - Value: ")
+			value = input("  - Value: ")    # Ask for input.
 			self.line += 1
-			if(value == "exit"):
+			if(value == "exit"):    # Exit the loop.
 				return
 			try:
-				value = int(value)
-				if(value < 50 or value > 300):
+				value = int(value)    # Make sure the input is an integer.
+				if(value < 50 or value > 300):    # Check the bounds.
 					print("\n\n\033[K", end="!! Tempo value can range from 50 to 300.")
 					self.go_up(3)
 					value = -1
@@ -255,22 +255,22 @@ class gui_class:  # Class to handle the user interface.
 				self.go_up(3)
 				value = -1
 
-		duration = input("  - Duration: ")
+		duration = input("  - Duration: ")    # Ask for input.
 		self.line += 1
-		if(duration == "exit"):
+		if(duration == "exit"):    # Exit the loop.
 			return
-		tempo.stop_slide()
+		tempo.stop_slide()    # Make sure there are no tempo slide threads running.
 		print("\033[K", end="")
 		try:
-			duration = int(duration)
+			duration = int(duration)    # Make sure the input is an integer.
 			if(duration > 0):
-				tempo.start_slide(value, duration)
+				tempo.start_slide(value, duration)    # Slide to the new tempo.
 				print("\nTempo slide started succesfully.")
-			else:
-				tempo.set(value)
+			else:    # Set the tempo if the duration wasn't a non-zero positive integer.
+				tempo.set(value)    # Set the new tempo.
 				print("\nTempo value set to: {0}.".format(value))
-		except ValueError:
-			tempo.set(value)
+		except ValueError:    # Set the tempo if the duration wasn't a non-zero positive integer.
+			tempo.set(value)    # Set the new tempo.
 			print("\nTempo value set to: {0}.".format(value))
 		self.line += 2
 
@@ -279,16 +279,16 @@ class gui_class:  # Class to handle the user interface.
 		self.go_up(2)
 		value1 = -1
 		self.line += 1
-		while(value1 == -1):
+		while(value1 == -1):    # Keep looping untill a valid input is given.
 			self.line -= 1
 			print("\033[K", end="")
-			value1 = input("  - Number of pulses: ")
+			value1 = input("  - Number of pulses: ")    # Ask for input.
 			self.line += 1
-			if(value1 == "exit"):
+			if(value1 == "exit"):    # Exit the loop.
 				return
 			try:
-				value1 = int(value1)
-				if(value1 < 3):
+				value1 = int(value1)    # Make sure the input is an integer.
+				if(value1 < 3):    # Check the bounds.
 					print("\n\n\033[K", end="!! Minimum number of pulses : 3.")
 					self.go_up(3)
 					value1 = -1
@@ -299,20 +299,20 @@ class gui_class:  # Class to handle the user interface.
 
 		value2 = -1
 		self.line += 1
-		while(value2 == -1):
+		while(value2 == -1):    # Keep looping untill a valid input is given.
 			self.line -= 1
 			print("\033[K", end="")
-			value2 = input("  - Pulse length: ")
+			value2 = input("  - Pulse length: ")    # Ask for input.
 			self.line += 1
-			if(value2 == "exit"):
+			if(value2 == "exit"):    # Exit the loop.
 				return
 			try:
-				value2 = int(value2)
-				if(value2 < 1):
+				value2 = int(value2)    # Make sure the input is an integer.
+				if(value2 < 1):    # Check the bounds.
 					print("\n\033[K", end="!! Minimum pulse length : 1.")
 					self.go_up(2)
 					value2 = -1
-				if(not (math.log(value2)/math.log(2)).is_integer()):
+				if(not (math.log(value2)/math.log(2)).is_integer()):    # Make sure the input is a power of 2.
 					print("\n\033[K", end="!! Pulse length must be a power of 2.")
 					self.go_up(2)
 					value2 = -1
@@ -321,48 +321,48 @@ class gui_class:  # Class to handle the user interface.
 				self.go_up(2)
 				value2 = -1
 
-		time_signature.set(value1, value2)
+		time_signature.set(value1, value2)    # Set the new time signature.
 		print("\033[K", end="")
 		print("\nTime signature set to : {0}.".format(time_signature.value))
 		self.line += 2
 
 	def set_samples(self):    # Set the audiofiles used for playback.
-		self.sample_list = []
-		for root, dirs, files in os.walk("resources/audioFiles"):
+		self.sample_list = []    # Initialize a list for all available samples.
+		for root, dirs, files in os.walk("resources/audioFiles"):    # Loop throu the files in de audiofiles directory.
 			for file in files:
-				if(file.endswith(".wav")):
-					self.sample_list.append(file)
-		num_of_pages = math.ceil(len(self.sample_list) / 10)
-		self.show_sample_page(1, num_of_pages)
+				if(file.endswith(".wav")):    # Check if the file is a '.wav' file.
+					self.sample_list.append(file)    # Add the file to the list.
+		num_of_pages = math.ceil(len(self.sample_list) / 10)    # Calculate the number of needed pages.
+		self.show_sample_page(1, num_of_pages)    # Display the first page.
 
 		print("\n  Sample 2 :")
 		print("  Sample 3 :")
 		self.go_up(3)
 		samples = []
 
-		for i, player in enumerate(rhythm_players):
+		for i, player in enumerate(rhythm_players):    # Loop through all rhythm players.
 			sample = None
 			self.line += 1
-			while(True):
+			while(True):    # Keep looping untill a valid input is given.
 				self.line -= 1
 				print("\033[K", end="")
 				sample = input("  Sample {0} : ".format(i + 1))
 				self.line += 1
-				if(sample == "exit"):
+				if(sample == "exit"):    # Exit the loop.
 					self.go_down(24 - self.line)
 					self.go_up(13, "delete")
 					self.go_up(11 - self.line)
 					return
-				elif(sample == ""):
-					if(i == 2):
+				elif(sample == ""):    # Skip this element.
+					if(i == 2):    # Clear the terminal after the last rhythm player.
 						self.go_down(24 - self.line)
 						self.go_up(13, "delete")
 						self.go_up(11 - self.line)
 					break
-				elif(sample.startswith("page ")):
+				elif(sample.startswith("page ")):    # Go to a different page of samples.
 					try:
-						page = int(sample.split(' ')[1])
-						if(page > num_of_pages):
+						page = int(sample.split(' ')[1])    # Make sure the page number is a positive integer. 
+						if(page > num_of_pages):    # Make sure the page number is smaller than or equal to the number of pages.
 							self.go_down(3 - i)
 							print("\033[K", end="!! Maximum page number : {0}.".format(num_of_pages))
 							self.go_up(4 - i)
@@ -373,12 +373,12 @@ class gui_class:  # Class to handle the user interface.
 						self.go_down(3 - i)
 						print("\033[K", end="!! Invalid sample : {0}".format(sample))
 						self.go_up(4 - i)
-				elif(valid_sample(sample)):
-					player.set_sample(sample)
+				elif(valid_sample(sample)):    # Check if the input is valid.
+					player.set_sample(sample)    # Set the audiofile of the rhythm player to the sample.
 					self.go_down(3 - i)
 					print("\033[K", end="Sample {0} set succesfully.".format(i + 1))
 					self.go_up(3 - i)
-					if(i == 2):
+					if(i == 2):    # Clear the terminal after the last rhythm player.
 						self.go_down(24 - self.line)
 						self.go_up(13, "delete")
 						self.go_up(11 - self.line)
