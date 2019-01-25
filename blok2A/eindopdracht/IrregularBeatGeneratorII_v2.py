@@ -1,15 +1,12 @@
 
 #-------------------- IMPORTS --------------------#
-# import simpleaudio as sa
-import pygame.midi as m
+import simpleaudio as sa
 import threading as t
 import time, random, os, webbrowser
 
 
 #--------------------- SETUP ---------------------#
-filesMissing = "\nOops!, it seems some files are missing. \n-files missing:"
-
-m.init()
+# filesMissing = "\nOops!, it seems some files are missing. \n-files missing:"
 
 # while True:
 # 	missingFiles = []
@@ -50,10 +47,9 @@ m.init()
 
 #-------------------- CLASSES --------------------#
 class sampleLayerClass:	# Handles the note generation, note randomization and playback of a sample and keeps track of all the playback-properties. 	
-	def __init__(self, name, port, customPulseGrid, noteDensity, noteLengthVariety, randomization):
-		self.midiOut = m.Output(name, 0)
-		self.port = port
-		# self.audiofile = sa.WaveObject.from_wave_file("resources/audioFiles/" + name)
+	def __init__(self, name, customPulseGrid, noteDensity, noteLengthVariety, randomization):
+		self.name = name
+		self.audiofile = sa.WaveObject.from_wave_file("resources/audioFiles/" + name)
 		self.noteDensity = noteDensity
 		self.noteLengthVariety = noteLengthVariety
 		self.randomization = randomization
@@ -61,14 +57,14 @@ class sampleLayerClass:	# Handles the note generation, note randomization and pl
 		self.rhythm = rhythmClass() # This object will store the entire generated rhythm.
 		self.playing = False
 
-		# Initializes the pulseGrid, the noteList and the timestampList.
+		# Initiates the pulseGrid, the noteList and the timestampList.
 		self.noteProbabilities = createProbabilityDistribution(len(noteLengths), self.noteDensity, self.noteLengthVariety)
 		self.generateGrids(customPulseGrid)
 		self.addNotes()
 
 	def setSample(self, name): # Sets sample and creates a corresponding file_path.
 		self.name = name
-		# self.audiofile = sa.WaveObject.from_wave_file("resources/audioFiles/" + name)
+		self.audiofile = sa.WaveObject.from_wave_file("resources/audioFiles/" + name)
 
 	def setNoteDensity(self, value): # Sets the noteDensity and regenerates the noteList.
 		self.noteDensity = value
@@ -155,7 +151,7 @@ class sampleLayerClass:	# Handles the note generation, note randomization and pl
 			self.timestampList = noteLengthsToNoteTimestamps(self.notesToStore)
 			self.timestampsToStore = self.timestampList.copy()
 
-	def play(self, startTime): # Plays the sample according to the rhythm stored in self.rhythm.									
+	def play(self, startTime): # Plays the sample according to the rhythm stored in self.rhythm.
 		note = 0											# The first not should be played instantly.											
 		
 		while self.playing:
@@ -165,13 +161,11 @@ class sampleLayerClass:	# Handles the note generation, note randomization and pl
 
 			if time.time() - startTime >= note:				# Checks if the duration of the note has passed.
 				startTime = time.time()						# Resets the startTime to the current time. 
-				self.midiOut.note_off(48, 0, self.port)
-				self.midiOut.note_on(48, 127, self.port)
-
+				self.audiofile.play()
 				self.rhythm.position += 1					# The first noteLength can be ignored, since it should be played instantly. (this is why the index gets incremented before the getNote() function)
 				note = self.rhythm.getNote()				# Picks a new note from the stored rhythm.
 				note *= eventHandler.beatDuration			# Converts the reletave noteLength to an absolute noteLength.
-				time.sleep(0.0010)
+				time.sleep(0.0001)
 			else:
 				time.sleep(0.001)
 
@@ -186,11 +180,9 @@ class sampleLayerClass:	# Handles the note generation, note randomization and pl
 			self.playbackThread.join()
 		except AttributeError:
 			pass
-		self.midiOut.close()
 
 	def playOnce(self): # Plays the sample once.
-		s = self.audiofile
-		s.play()
+		self.audiofile.play()
 		
 class eventHandlerClass: # Keeps track of the position in the measure and triggers certain events accordingly.
 	def __init__(self):
@@ -533,19 +525,19 @@ def goToHelp(subject): # Directs the user to a specified subject in the helpfile
 #-------------------- OBJECTS --------------------#
 noteLengths = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25]
 sampleLayers = [] # A list to store the sample layer classes.
-sampleLayerNames = [4, 5, "layer3"]
+sampleLayerNames = ["layer1", "layer2", "layer3"]
 
 #--default settings--#
 tempo = tempoClass(120)
-timeSignature = timeSignatureClass("7/4")
+timeSignature = timeSignatureClass("5/4")
 state = "main"
 randomizationMode = "static"
 
 #--initialization--#
 eventHandler = eventHandlerClass()
-sampleLayers.append(sampleLayerClass(4, 3, False, 6, 3, 0))
-sampleLayers.append(sampleLayerClass(5, 5, False, 2, 0, 0))
-# sampleLayers.append(sampleLayerClass("Default3.wav", [0, timeSignature.measureLength], 5, 2, 0))
+sampleLayers.append(sampleLayerClass("Laser1.wav", False, 6, 1, 0))
+sampleLayers.append(sampleLayerClass("Laser1.wav", False, 5, 2, 0))
+sampleLayers.append(sampleLayerClass("Laser1.wav", [0, timeSignature.measureLength], 5, 2, 0))
 
 #--error/warning messages--#
 sampleNotValid = "\nSample not available. \nPlease make sure the sample name is spelled correctly and in the audioFiles folder. \n(For now the program only supports wavfiles with a maximum bitdepth of 16.)\n"
@@ -575,9 +567,8 @@ while True: # This while-loop handles the entire main script.
 	if state == "quit":	# Kills all the running threads.
 		for layer in sampleLayers:				
 			layer.stopPlayback()
-			del layer.midiOut
 		eventHandler.stop()						
-		tempo.stopSlide()					
+		tempo.stopSlide()						
 		break
 
 #--helpfile--#
