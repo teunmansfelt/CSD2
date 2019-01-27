@@ -50,17 +50,9 @@ class rhythm_player_class:  # Class to handle the playback of a rhythm.
 
 	def set_rhythm_density(self, value):
 		self.rhythm.rhythm_density = value
-		if(gui.playback):
-			self.rhythm.create_rhythm()
-			self.rhythm.timestamps = notes_to_timestamps(self.rhythm.notes)
-			self.rhythm.timestamps_to_add = self.rhythm.timestamps.copy()
 
 	def set_note_diversity(self, value):
 		self.rhythm.note_diversity = value
-		if(gui.playback):
-			self.rhythm.create_rhythm()
-			self.rhythm.timestamps = notes_to_timestamps(self.rhythm.notes)
-			self.rhythm.timestamps_to_add = self.rhythm.timestamps.copy()
 
 	def set_randomization(self, value):
 		self.rhythm.randomization = value
@@ -161,18 +153,21 @@ class rhythm_class:  # Class to handle rhythm generation and rhythm storage.
 		self.rhythm_index += 1
 		return timestamp
 
-	def set_rhythm_lists(self, custom_grid=None):    # Regenerates the rhythm and sets the buffer.
+	def set_pulse_grid(self, custom_grid=None):
 		if(custom_grid):
 			self.pulse_grid = custom_grid    # Grid to keep track of the pulses in the rhythm.
 		else:
 			self.pulse_grid = create_pulse_grid()
+
+	def set_rhythm_lists(self, custom_grid=None):    # Regenerates the rhythm and sets the buffer.		
 		self.notes = self.create_rhythm()    # List to store the note lengths.
 		self.timestamps = notes_to_timestamps(self.notes)    # List to store the timestamps of the original rhythm (self.notes)
 		self.timestamps_to_add = self.timestamps.copy()    # List to buffer the timestamps which will be added next measure.
 
 	def reset(self, custom_grid):    # Resets the class to default state.
 		self.rhythm_index = 0    # Variable to keep track of what timestamp should be retrieved.
-		self.set_rhythm_lists(custom_grid)    # Inits the rhythm and buffer.
+		self.set_pulse_grid(custom_grid)    # Inits the pulse grid.
+		self.set_rhythm_lists()    # Inits the rhythm and buffer.
 		self.rhythm = []    # array to store the timestamps for playback.
 		self.add_timestamps()
 		
@@ -194,8 +189,10 @@ class time_signature_class:  # Class to handle the timesignature.
 
 		for i, player in enumerate(rhythm_players):    # Regenerate the rhythms of every rhythm player.
 			if(i == 2):
-				player.rhythm.set_rhythm_lists([0, self.measure_length])
+				player.rhythm.set_pulse_grid([0, self.measure_length])
+				player.rhythm.set_rhythm_lists()
 			else:
+				player.rhythm.set_pulse_grid()
 				player.rhythm.set_rhythm_lists()
 
 	def reset_events(self):
@@ -204,11 +201,17 @@ class time_signature_class:  # Class to handle the timesignature.
 class tempo_class:  # Class to handle the tempo.
 	def __init__(self, value):
 		self.value = value    # Tempo in beats per minute.
+		self.display_value = value    # Seperate variable for displaying the tempo.
 		self.bps = value / 60    # Beats per second.
 		self.events = [[0, self.value]]
+		
+		self.auto_scaling = "ON"    # Boolean to keep track if tempo should be scaled according to the time signature.
+		self.slide_multiplier = 1    # Multiplier for when the time signature is changed during a tempo slide.
+		self.slide = False    # Boolean to keep the temposlide going.
 
 	def set(self, value):
 		self.value = value
+		self.display_value = value
 		self.bps = value / 60
 		if(gui.playback):
 			self.events.append([rhythm_players[0].beat, self.value])
@@ -221,15 +224,18 @@ class tempo_class:  # Class to handle the tempo.
 		increment = (destination - start) / duration    # Calculate tempo increment step.
 		for i in range(0, duration):
 			self.value += increment
+			self.value *= self.slide_multiplier
 			self.bps = self.value / 60
-			if not self.slide:    # Return when the slide is stopped manually.
+			if(not self.slide):    # Return when the slide is stopped manually.
 				return
 			time.sleep(0.001)
-		self.value = destination    # Elimenate rounding errors.
+		self.value = destination * self.slide_multiplier    # Elimenate rounding errors.
 		self.bps = self.value / 60
 		
 	def start_slide(self, destination, duration):
-		self.slide = True    # Keep the tempo slide goinig.
+		self.slide = True
+		self.display_value = destination
+		self.events.append([rhythm_players[0].beat, destination])
 		t.Thread(target=self.ramp, args=(destination, duration)).start()    # Start a thread to handle the tempo slide.
 
 	def stop_slide(self):
@@ -247,7 +253,7 @@ class gui_class:  # Class to handle the user interface.
 	def init(self):    # Initialize the gui.	
 		print("\nIrregular Beat Generator III   -   by: Teun Mansfelt")
 		print("{0}\noverview:".format(self.bar*53))
-		print("  Time signature     : {0}\n  Tempo              : {1}\n  Randomization mode : {2}".format(time_signature.value, tempo.value, randomization_mode))
+		print("  Time signature     : {0}\n  Tempo              : {1}\n  Tempo auto scaling : {2}\n  Randomization mode : {3}".format(time_signature.value, tempo.value, tempo.auto_scaling, randomization_mode))
 		for i, player in enumerate(rhythm_players):
 			print("\n  Layer{0}:\n  - Sample         : {1}\n  - Rhythm density : {2}\n  - Note diversity : {3}\n  - Randomization  : {4}"
 			.format(i+1, player.sample, player.rhythm.rhythm_density, player.rhythm.note_diversity, player.rhythm.randomization)) 
@@ -313,17 +319,18 @@ class gui_class:  # Class to handle the user interface.
 				print("\nTempo slide started succesfully.")
 			else:    # Set the tempo if the duration wasn't a non-zero positive integer.
 				tempo.set(value)    # Set the new tempo.
-				print("\nTempo value set to: {0}.".format(value))
+				print("\nTempo value set to: {0}.".format(tempo.display_value))
 		except ValueError:    # Set the tempo if the duration wasn't a non-zero positive integer.
 			tempo.set(value)    # Set the new tempo.
-			print("\nTempo value set to: {0}.".format(value))
-		self.go_up(27)
-		print("  Tempo              : {0}".format(value))
-		self.line -= 24
+			print("\nTempo value set to: {0}.".format(tempo.display_value))
+		self.go_up(28)
+		print("\033[K", end="  Tempo              : {0}".format(tempo.display_value))
+		self.line -= 25
 
 	def set_timesignature(self):    # Set the time signature.
 		print("\n  - Pulse length:")
-		self.go_up(2)
+		print("  - Tempo auto scaling:")
+		self.go_up(3)
 		value1 = -1
 		self.line += 1
 		while(value1 == -1):    # Keep looping until a valid input is given.
@@ -336,12 +343,14 @@ class gui_class:  # Class to handle the user interface.
 			try:
 				value1 = int(value1)    # Make sure the input is an integer.
 				if(value1 < 3):    # Check the bounds.
-					print("\n\n\033[K", end="!! Minimum number of pulses : 3.")
-					self.go_up(3)
+					self.go_down(3)
+					print("\033[K", end="!! Minimum number of pulses : 3.")
+					self.go_up(4)
 					value1 = -1
 			except ValueError:
-				print("\n\n\033[K", end="!! Number of pulses must be an integer.")
-				self.go_up(3)
+				self.go_down(3)
+				print("\033[K", end="!! Number of pulses must be an integer.")
+				self.go_up(4)
 				value1 = -1
 
 		value2 = -1
@@ -356,23 +365,54 @@ class gui_class:  # Class to handle the user interface.
 			try:
 				value2 = int(value2)    # Make sure the input is an integer.
 				if(value2 < 1):    # Check the bounds.
-					print("\n\033[K", end="!! Minimum pulse length : 1.")
-					self.go_up(2)
+					self.go_down(2)
+					print("\033[K", end="!! Minimum pulse length : 1.")
+					self.go_up(3)
 					value2 = -1
 				if(not math.log(value2, 2).is_integer()):    # Make sure the input is a power of 2.
-					print("\n\033[K", end="!! Pulse length must be a power of 2.")
-					self.go_up(2)
+					self.go_down(2)
+					print("\033[K", end="!! Pulse length must be a power of 2.")
+					self.go_up(3)
 					value2 = -1
 			except ValueError:
-				print("\n\n\033[K", end="!! Pulse length must be an integer.")
-				self.go_up(2)
+				self.go_down(2)
+				print("\033[K", end="!! Pulse length must be an integer.")
+				self.go_up(3)
 				value2 = -1
 
+		self.line += 1
+		while(True):
+			self.line -= 1
+			print("\033[K", end="")
+			auto_scaling = input("  - Tempo auto scaling: ")
+			self.line += 1
+			if(auto_scaling == "exit"):    # Exit the loop.
+				return
+			if(auto_scaling == ""):
+				break
+			if(auto_scaling.upper() == "ON" or auto_scaling.upper() == "OFF"):
+				tempo.auto_scaling = auto_scaling.upper()
+				break
+			else:
+				self.go_down(1)
+				print("\033[K", end="!! Tempo auto scaling can be either 'ON' or 'OFF'")
+				self.go_up(2)
+
+		if(tempo.auto_scaling == "ON"):    # Check if auto scaling is on.
+			if(tempo.slide):
+				tempo.slide_multiplier = time_signature.beat_length / value2    # Adjust tempo.
+			else:
+				tempo.set(tempo.value * time_signature.beat_length / value2)    # Adjust tempo. 		
 		time_signature.set(value1, value2)    # Set the new time signature.
-		print("\033[K", end="")
-		print("\nTime signature set to : {0}.".format(time_signature.value))
-		self.go_up(28)
-		print("  Time signature     : {0}".format(time_signature.value))
+		print("\n\033[K", end="Time signature set to : {0}.".format(time_signature.value))
+		print("\n\033[K", end="Tempo auto scaling set to : {0}.".format(tempo.auto_scaling))
+		self.go_up(30)
+		print("\033[K", end="  Time signature     : {0}".format(time_signature.value))
+		if(tempo.auto_scaling == "ON"):
+			print("\033[K", end="  Tempo              : {0}".format(int(tempo.display_value)))
+			print("\033[K", end="  Tempo auto scaling : {0}".format(tempo.auto_scaling))
+		else:
+			print("\033[K", end="\n  Tempo auto scaling : {0}".format(tempo.auto_scaling))
 		self.line -= 25
 
 	def set_samples(self):    # Set the audiofiles used for playback.
@@ -384,8 +424,8 @@ class gui_class:  # Class to handle the user interface.
 		num_of_pages = math.ceil(len(self.sample_list) / 8)    # Calculate the number of needed pages.
 		self.show_sample_page(1, num_of_pages)    # Display the first page.
 
-		print("\n  - Sample 2 :")
-		print("  - Sample 3 :")
+		print("\n  - Sample layer 2 :")
+		print("  - Sample layer 3 :")
 		self.go_up(3)
 		samples = []
 
@@ -395,7 +435,7 @@ class gui_class:  # Class to handle the user interface.
 			while(True):    # Keep looping until a valid input is given.
 				self.line -= 1
 				print("\033[K", end="")
-				sample = input("  - Sample {0} : ".format(i + 1))
+				sample = input("  - Sample layer {0} : ".format(i + 1))
 				self.line += 1
 				if(sample == "exit"):    # Exit the loop.
 					self.go_down(25 - self.line)
@@ -425,9 +465,9 @@ class gui_class:  # Class to handle the user interface.
 				elif(valid_sample(sample)):    # Check if the input is valid.
 					player.set_sample(sample)    # Set the audiofile of the rhythm player to the sample.
 					self.go_up(20 - 5 * i)
-					print("  - Sample         : {0}".format(sample))
+					print("\033[K", end="  - Sample         : {0}".format(sample))
 					self.go_down(22 - 6 * i)
-					print("\033[K", end="Sample {0} set succesfully.".format(i + 1))
+					print("\033[K", end="Sample layer {0} set to : {1}.".format(i + 1, sample))
 					self.go_up(3 - i)
 					if(i == 2):    # Clear the terminal after the last rhythm player.
 						self.go_down(25 - self.line)
@@ -483,10 +523,11 @@ class gui_class:  # Class to handle the user interface.
 			if(value != ""):    # Set the parameter if it isn't skipped.
 				exec("rhythm_players[{0}].{1}".format(layer - 1, parameters[i][2].format(value)))    # Set the parameter.
 				self.go_down(4 - self.line)
-				print("{0} set succesfully.".format(parameters[i][0]))
+				print("\033[K", end="{0} set to : {1}.".format(parameters[i][0]), value)
 				self.go_up(30 - 6 * layer - self.line)
-				print("  - {0} : {1}".format(parameters[i][0], value))
+				print("\033[K", end="  - {0} : {1}".format(parameters[i][0], value))
 				self.go_down(24 - 6 * layer)
+		rhythm_players[layer - 1].rhythm.set_rhythm_lists()
 
 	def set_randomization_mode(self):    # Sets the type of randomization.
 		mode = None
@@ -501,7 +542,7 @@ class gui_class:  # Class to handle the user interface.
 				randomization_mode = mode    # Set randomization.
 				print("\nRandomization mode set to : {0}".format(mode))
 				self.go_up(25)
-				print("  Randomization mode : {0}".format(mode))
+				print("\033[K", end="  Randomization mode : {0}".format(mode))
 				self.line -= 22
 			else:
 				print("\n!! Invalid randomization mode. \n  - Valid modes: 'static', 'evolve'")
@@ -697,7 +738,7 @@ def check_files_and_directories():    # Checks if all the necessary files and di
 						if(file not in files):
 							missing_files.append("resources/audioFiles/{0}".format(file))
 			# if(not os.path.exists("./resources/helpfile.txt")):
-			# 	missingFiles.append("/resources/helpfile.txt")
+			# 	missing_files.append("/resources/helpfile.txt")
 		if(len(missing_files) <= 0):
 			break
 
@@ -751,7 +792,7 @@ randomization_mode = "static"
 clear = lambda: os.system('clear')    # Clears the console.
 
 #--initialization--#
-time_signature = time_signature_class(7, 8)
+time_signature = time_signature_class(7, 4)
 tempo = tempo_class(120)
 gui = gui_class()
 
