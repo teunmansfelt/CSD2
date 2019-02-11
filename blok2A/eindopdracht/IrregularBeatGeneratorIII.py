@@ -324,7 +324,7 @@ class gui_class:  # Class to handle the user interface.
 			tempo.set(value)    # Set the new tempo.
 			print("\nTempo value set to: {0}.".format(tempo.display_value))
 		self.go_up(28)
-		print("\033[K", end="  Tempo              : {0}".format(tempo.display_value))
+		print("\n\033[K", end="  Tempo              : {0}".format(tempo.display_value))
 		self.line -= 25
 
 	def set_timesignature(self):    # Set the time signature.
@@ -394,8 +394,7 @@ class gui_class:  # Class to handle the user interface.
 				tempo.auto_scaling = auto_scaling.upper()
 				break
 			else:
-				self.go_down(1)
-				print("\033[K", end="!! Tempo auto scaling can be either 'ON' or 'OFF'")
+				print("\n\033[K", end="!! Tempo auto scaling can be either 'ON' or 'OFF'")
 				self.go_up(2)
 
 		if(tempo.auto_scaling == "ON"):    # Check if auto scaling is on.
@@ -404,16 +403,13 @@ class gui_class:  # Class to handle the user interface.
 			else:
 				tempo.set(tempo.value * time_signature.beat_length / value2)    # Adjust tempo. 		
 		time_signature.set(value1, value2)    # Set the new time signature.
+		self.go_up(28)
+		print("\033[K", end="  Time signature     : {0}".format(time_signature.value))
+		print("\n\033[K", end="  Tempo              : {0}".format(int(tempo.display_value)))
+		print("\n\033[K", end="  Tempo auto scaling : {0}".format(tempo.auto_scaling))
+		self.go_down(24)
 		print("\n\033[K", end="Time signature set to : {0}.".format(time_signature.value))
 		print("\n\033[K", end="Tempo auto scaling set to : {0}.".format(tempo.auto_scaling))
-		self.go_up(30)
-		print("\033[K", end="  Time signature     : {0}".format(time_signature.value))
-		if(tempo.auto_scaling == "ON"):
-			print("\033[K", end="  Tempo              : {0}".format(int(tempo.display_value)))
-			print("\033[K", end="  Tempo auto scaling : {0}".format(tempo.auto_scaling))
-		else:
-			print("\033[K", end="\n  Tempo auto scaling : {0}".format(tempo.auto_scaling))
-		self.line -= 25
 
 	def set_samples(self):    # Set the audiofiles used for playback.
 		self.sample_list = []    # Initialize a list for all available samples.
@@ -467,7 +463,7 @@ class gui_class:  # Class to handle the user interface.
 					self.go_up(20 - 5 * i)
 					print("\033[K", end="  - Sample         : {0}".format(sample))
 					self.go_down(22 - 6 * i)
-					print("\033[K", end="Sample layer {0} set to : {1}.".format(i + 1, sample))
+					print("\n\033[K", end="Sample layer {0} set to : {1}.".format(i + 1, sample))
 					self.go_up(3 - i)
 					if(i == 2):    # Clear the terminal after the last rhythm player.
 						self.go_down(25 - self.line)
@@ -486,6 +482,7 @@ class gui_class:  # Class to handle the user interface.
 				int('a')
 		except ValueError:
 			print("!! Invalid layer : {0}".format(layer))
+			self.line += 1
 			return
 
 		print("\n  - Note diversity :")
@@ -523,9 +520,9 @@ class gui_class:  # Class to handle the user interface.
 			if(value != ""):    # Set the parameter if it isn't skipped.
 				exec("rhythm_players[{0}].{1}".format(layer - 1, parameters[i][2].format(value)))    # Set the parameter.
 				self.go_down(4 - self.line)
-				print("\033[K", end="{0} set to : {1}.".format(parameters[i][0]), value)
+				print("\n\033[K", end="{0} set to : {1}.".format(parameters[i][0], value))
 				self.go_up(30 - 6 * layer - self.line)
-				print("\033[K", end="  - {0} : {1}".format(parameters[i][0], value))
+				print("\n\033[K", end="  - {0} : {1}".format(parameters[i][0], value))
 				self.go_down(24 - 6 * layer)
 		rhythm_players[layer - 1].rhythm.set_rhythm_lists()
 
@@ -542,7 +539,7 @@ class gui_class:  # Class to handle the user interface.
 				randomization_mode = mode    # Set randomization.
 				print("\nRandomization mode set to : {0}".format(mode))
 				self.go_up(25)
-				print("\033[K", end="  Randomization mode : {0}".format(mode))
+				print("\n\033[K", end="  Randomization mode : {0}".format(mode))
 				self.line -= 22
 			else:
 				print("\n!! Invalid randomization mode. \n  - Valid modes: 'static', 'evolve'")
@@ -762,6 +759,7 @@ def check_files_and_directories():    # Checks if all the necessary files and di
 					exit()
 				else:
 					gui.go_up(8, "delete")
+					break
 			else:
 				print("\n!! Unknown command : {0}".format(download))
 				gui.go_up(2)
@@ -785,8 +783,6 @@ def make_midifile(name):    # Export the rhythms as a midifile.
 notes = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25]    # List to store all possible note lengths.
 rhythm_players = []    # List to store the rhythm players.
 necessary_wavefiles = ["Default_kick.wav", "Default_snare.wav", "Default_hihat.wav"]
-
-state = "main"
 randomization_mode = "static"
 
 clear = lambda: os.system('clear')    # Clears the console.
