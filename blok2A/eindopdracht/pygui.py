@@ -7,7 +7,7 @@ _line_tracker = None
 
 class line_tracker_class:
 	"""
-	Keeps track of which line the cursor is.
+	Keeps track of which line the cursor is on.
 	The mode determines if the line numbers are printed (toggled on by including the edit_mode().)
 	"""
 	def __init__(self):
