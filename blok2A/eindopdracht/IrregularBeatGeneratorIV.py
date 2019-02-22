@@ -9,7 +9,7 @@ import time, random, math, os, webbrowser	# Miscellaneous modules
 
 #-------------------- OBJECTS --------------------#
 sample_players = []
-notelist = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25]  # Notevalues as amount of beats.
+notelist = [4, 3, 2, 1.5, 1, 0.75, 0.5, 0.25]  # Notevalues as amount of beats. !NOTE: List must be in strict desending order for the algorithms to work properly!
 midi_notes = [36, 38, 42]  # Midinotes used on export.
 
 #-------------------- CLASSES --------------------#
@@ -22,18 +22,18 @@ class SamplePlayer(object):
 	event_Handler() class. Audioplayback is automatically run on a seperate thread.
 
 	Attributes:
-		self.events 	: Reference to a global event_handler.
-		self.sample 	: Sample name.
-		self.audiofile 	: Simpleaudio object to store the wavefile.
-		self.rhythm 	: Rhythm generator object.
-		self.playing	: Boolean to track if audio is playing.
+		self.events    : Reference to a global event_handler.
+		self.sample    : Sample name.
+		self.audiofile : Simpleaudio object to store the wavefile.
+		self.rhythm    : Rhythm generator object.
+		self.playing   : Boolean to track if audio is playing.
 	"""
-	def __init__(self, event_handler, audiofile, grid_type=0):
+	def __init__(self, event_handler, audiofile, pulse_grid_type=0):
 		global sample_player
 		self.events = event_handler			
 		self.sample = audiofile
 		self.audiofile = sa.WaveObject.from_wave_file(audiofile)
-		self.rhythm = Rhythm(event_handler, grid_type)
+		self.rhythm = Rhythm(event_handler, pulse_grid_type)
 		self.playing = False
 
 		sample_player.append(self)  # Adds itself to a global list for easy access.
@@ -108,7 +108,7 @@ class SamplePlayer(object):
 class Rhythm(object):
 	"""Generates, randomizes and stores a rhythm.
 	
-	Pseudo randomly generates a rhythm based on rhythm density, note diversity and a pulse grid. 
+	Semi-randomly generates a rhythm based on rhythm density, note diversity and a pulse grid. 
 	The pulse grid keeps track of where the pulses are in the rhythm (points that always contain
 	a note). The density determines the average notevalue and therefore ultimatly the amount of 
 	notes in the rhythm. The note diversity determines how much the notevalues may differ from 
@@ -127,9 +127,9 @@ class Rhythm(object):
 		self.pulse_grid_type : Determines the pulse_grid generation algorithm.
 		self.density 		 : Density of the rhythm (amount of notes).
 		self.note_diversity  : Diversity of notevalues.
-		self.randomizations  : Amount of randomizations per itteration.
+		self.randomizations  : Amount of randomizations per itteration (rhythm update).
 	"""
-	def __init__(self, event_handler, grid_type=0):
+	def __init__(self, event_handler, pulse_grid_type=0):
 		self.events = event_handler
 		self.base_rhythm = [[], []]
 		self.buffer = TimestampBuffer(event_handler)
@@ -141,19 +141,119 @@ class Rhythm(object):
 
 	def _create(self):
 		"""Generates a new rhtyhm.
+
+		Generates a semi-random list of notes with respect to a predetermined grid of pulses.
+
+		Retruns:
+			list of notevalues.
 		"""
-		pass
+		global notelist
+		note_probabilities = create_note_probabilities(len(notelist), self.density, self.note_diversity)
+		rhythm = []
+		start = self.pulse_grid[0]
+		rhythm_length = start  # Sum of the notevalues in the rhythm.
+		for pulse in self.pulse_grid:
+			while(rhythm_length < pulse):
+				note = pick_item(notelist, note_probabilities)  # picks a new note.
+				if(note + rhythm_length > pulse):  # Checks if the picked notevalue exceeds the pulse.
+					note = pulse - rhythm_length  # Adjust notevalue accordingly.
+				rhythm.append(note)
+				rhythm_length += note
+		return rhythm
 
 	def _randomize(self):
 		"""Randomizes the base rhythm.
-		"""
-		pass
 
-	def initialize(self):
-		"""Initialize the rhythm."""
-		self.pulse_grid = create_pulse_grid(events.time_signature.measure_length, self.pulse_grid_type)
+		Applies a user-set amount of randomizations to the base rhythm, using one of two
+		possible modi. Static mode doesn't alter the pulses in the grid, nor the original 
+		base rhythm. Evolve (evolutionairy) mode discards the pulses and overwrites the
+		original base rhythm, which over time will result in the transition to a completely
+		different rhythm.
+
+		Every time an index is picked, it might result in a faulty randomization. After picking
+		three false indecis, no randomization gets applied. This adds on some extra randomness.
+
+		Returns:
+			A list of (altered) timestamps.
+		"""
+		global notelist
+		randomizations = self.randomizations  # Number of randomizations to be applied.
+		if(self.events.randomization_mode == "static"):  # Checks the randomization mode.
+			rhythm_rand = self.base_rhythm.copy()
+			while(randomizations > 0):
+				option = random.randint(0,2)  # Picks a randomization type.
+				tries = 0
+
+				if(option == 0):  # Swaps two consecutive notes.
+					index = random.randint(0, len(rhythm_rand[0])-2)  # Picks an index, excluding the last.
+					while(tries < 3):
+						if(rhythm_rand[1][index + 1] not in self.pulse_grid and rhythm_rand[0][index] != rhythm_rand[0][index + 1]):  # Checks if the index is valid.
+							swap_notes(rhythm_rand[0], index)  # Swaps two notes.
+						else:
+							index = random.randint(0, len(rhythm_rand[0])-2)  # Picks a new index.
+							tries += 1
+
+				elif(option == 1):  # Glues two consecutive notes together.
+					index = random.randint(0, len(rhythm_rand[0])-2)  # Picks an index, excluding the last.
+					while(tries < 3):
+						if(rhythm_rand[1][index + 1] not in self.pulse_grid):  # Checks if the index is valid.
+							glue_notes(rhythm_rand[0], index)  # Glues two notes.
+						else:
+							index = random.randint(0, len(rhythm_rand[0])-2)  # Picks a new index.
+							tries += 1
+
+				elif(option == 2):  # Splits a note into two smaller notes. 
+					index = random.randint(0, len(rhythm_rand[0])-1)  # Picks an index.
+					while(tries < 3):
+						if(rhythm_rand[0][index] != notelist[-1]):  # Checks if the index is valid.
+							split_notes(rhythm_rand[0], index)  # Splits a note.
+						else:
+							index = random.randint(0, len(rhythm_rand[0])-1)  # Picks a new index.
+							tries += 1
+
+				rhythm_rand[1] = notes_to_timestamps(rhythm_rand[0], self.pulse_grid[0])  
+			return rhythm_rand[1]
+
+		if(self.events.randomization_mode == "evolve"):  # Checks the randomization mode.
+			while(randomizations > 0):
+				option = random.randint(0,2)  # Picks a randomization type.
+				tries = 0
+
+				if(option == 0):  # Swaps two consecutive notes.
+					index = random.randint(0, len(self.base_rhythm[0])-2)  # Picks an index, excluding the last.
+					while(tries < 3):
+						if(self.base_rhythm[0][index] != self.base_rhythm[0][index + 1]):  # Checks if the index is valid.
+							swap_notes(self.base_rhythm[0], index)  # Swaps two notes.
+						else:
+							index = random.randint(0, len(self.base_rhythm[0])-2)  # Picks a new index.
+							tries += 1
+
+				elif(option == 1):  # Glues two consecutive notes together.
+					index = random.randint(0, len(self.base_rhythm[0])-2)  # Picks an index, excluding the last.
+					glue_notes(self.base_rhythm[0], index)  # Glues two notes.
+
+				elif(option == 2):  # Splits a note into two smaller notes. 
+					index = random.randint(0, len(self.base_rhythm[0])-1)  # Picks an index.
+					while(tries < 3):
+						if(self.base_rhythm[0][index] != notelist[-1]):  # Checks if the index is valid.
+							split_notes(self.base_rhythm[0], index)  # Splits a note.
+						else:
+							index = random.randint(0, len(self.base_rhythm[0])-1)  # Picks a new index.
+							tries += 1
+
+				self.base_rhythm[1] = notes_to_timestamps(self.base_rhythm[0], self.pulse_grid[0])
+			return self.base_rhythm[1]
+
+	def initialize(self, new_grid=True):
+		"""Initialize the rhythm.
+
+		Args:
+			new_grid : Determines if a new pulsegrid should be generated.
+		"""
+		if(new_grid):
+			self.pulse_grid = create_pulse_grid(events.time_signature.measure_length, self.pulse_grid_type)
 		self.base_rhythm[0] = self._create()
-		self.base_rhythm[1] = notes_to_timestamps(self.base_rhythm[0])
+		self.base_rhythm[1] = notes_to_timestamps(self.base_rhythm[0], self.pulse_grid[0])
 		self.buffer.add_timestamps(self.base_rhythm[1])
 
 	def update(self):
@@ -189,8 +289,8 @@ class TimestampBuffer(object):
 		"""Updates the read_index.
 
 		Returns:
-			True 	: If the end of the buffer is reached.
-			False 	: If the above doesn't apply.
+			True  : If the end of the buffer is reached.
+			False : If the above doesn't apply.
 		"""
 		self.read_index += 1
 		if(self.read_index <= len(self.buffer)):  # Checks if the end of the buffer is reached.
@@ -206,14 +306,14 @@ class TimestampBuffer(object):
 		"""Adds a list of timestamps to the buffer.
 
 		Args:
-			timestamps 	: A list of positive, relative timestamps (meaning a 0 gets interpreted
-						  as the value stored in self.offset) with a size of at least 1. The
-						  last value in the list gets interpreted as the next offset and won't 
-						  be added to the buffer.
+			timestamps : A list of positive, relative timestamps (meaning a 0 gets interpreted
+						 as the value stored in self.offset) with a size of at least 1. The
+						 last value in the list gets interpreted as the next offset and won't 
+						 be added to the buffer.
 		
 		Raises:
-			IndexError 	: If the inputed list contains fewer than 2 elements.
-			ValueError 	: If the inputed list contains negative values.
+			IndexError : If the inputed list contains fewer than 2 elements.
+			ValueError : If the inputed list contains negative values.
 		"""
 		if(len(timestamps) < 2):
 			raise IndexError("Timestamps listsize must be at least 2")
@@ -238,7 +338,7 @@ class TimestampBuffer(object):
 		self.offset = 0
 
 #------------------- FUNCTIONS -------------------#
-def create_probability_distribution(length, centre, spread):
+def create_note_probabilities(length, centre, spread):
 	"""Creates a list of related probabilities.
 	
 	Creates a list of stacked probabilities according to the following function:
@@ -249,18 +349,18 @@ def create_probability_distribution(length, centre, spread):
 	[0.2, 0.3, 0.45, 0.05] gets turned into [0.2, 0.5, 0.95, 1].
 
 	Args:
-		length 	: Desired list length.
-		centre 	: Index of the highest probability (n/n^2) (Must be smaller than the length). 
-		spread 	: Amount of non-zero probabilities next to the centre (n-1).
+		length : Desired list length.
+		centre : Index of the highest probability (n/n^2) (Must be smaller than the length). 
+		spread : Amount of non-zero probabilities next to the centre (n-1).
 
 	Raises:
-		ValueError 	: If the centre value is bigger than the length.
+		ValueError : If the centre value is not between 0 and the length.
 
 	Returns:
 		List of stacked probabilities.
 	"""
-	if(centre >= length):
-		raise IndexError("Centre must be smaller than lenght ({0}), given: {1}".format(lenght, centre))
+	if(centre < 0 or centre >= length):
+		raise ValueError("Centre must be between 0 and lenght ({0}), given: {1}".format(lenght, centre))
 
 	probability_series = []  # Function as described in the docstring.
 	n = spread + 1
@@ -280,21 +380,22 @@ def create_probability_distribution(length, centre, spread):
 	if(centre + spread > length - 1):  # Checks the right bound with respect to the centre index.						
 		for i in range(0, spread):
 			out_of_bounds += probability_series.pop(-1)	
-	for i, probability in enumerate(probability_series):  # Distributes the out of bound value evenly over the remaining terms.
-		probability_series[i] = probability + out_of_bounds/len(probability_series)
+	for i, value in enumerate(probability_series):  # Distributes the out of bound value evenly over the remaining terms.
+		probability_series[i] = value + out_of_bounds/len(probability_series)
 
 	probabilities = [0]*length  # Initializes a list of the desired length.
-	for i, probability in enumerate(probability_series):  # The code inisde this loop maps the probability series to the correct indecis (according to the centre index).
+	for i, value in enumerate(probability_series):  # The code inisde this loop maps the probability series to the correct indecis (according to the centre index).
 		if(centre - spread >= 0):													
-			probabilities[i + centre - spread] = probability
+			probabilities[i + centre - spread] = value
 		else:
-			probabilities[i] = probability
+			probabilities[i] = value
 
-	for i, chance in enumerate(probabilities):  # The code inside this for-loop stacks the noteProbabilities.
+	for i, value in enumerate(probabilities):  # The code inside this for-loop stacks the noteProbabilities.
 		if(i > 0):														
-			probabilities[i] = round(chance + probabilities[i-1], 4)
+			probabilities[i] = round(value + probabilities[i-1], 4)
 		else:
-			probabilities[i] = round(chance, 4)
+			probabilities[i] = round(value, 4)
+	
 	return probabilities
 
 def create_pulse_grid(length, grid_type):
@@ -303,12 +404,13 @@ def create_pulse_grid(length, grid_type):
 	Generates a list of timestamps (designated as pulses) of a set length, using one of three
 	algorithms. For grid lengths bigger than 3, type 1 and 2 start with [0, 3] and [1, 4] 
 	respectively, after which timestamps of length 2 or 4 are added untill the desired length
-	is reached. For a grid length of exactly 3, a type 2 grid will be [1, 3]. A type 3 grid 
-	will always result in a grid of the form [0, length].
+	is reached. For a grid length of exactly 3, a type 2 grid the resulting list will look like 
+	[1, 3]. A type 3 grid will always result in a grid of the form [0, length]. The first and 
+	last timestamp in the grid will mark the startpoint end endpoint of the rhythm.
 
 	Args:
-		length 	   : Desired grid_length (must be bigger than or equal to 3).
-		grid_type  : Determines the algorithm to be implemented (must be between 0 and 2).
+		length 	  : Desired grid_length (must be bigger than or equal to 3).
+		grid_type : Determines the algorithm to be implemented (must be between 0 and 2).
 	
 	Raises:
 		ValueError : If length is smaller than 3.
@@ -338,31 +440,62 @@ def create_pulse_grid(length, grid_type):
 		pulse_grid.append(0, length)
 		grid_length = length
 
-	while(grid_length < length):    # Keep adding pulses until the desired length is reached.
+	while(grid_length < length):  # Keeps adding pulses until the desired length is reached.
 		if(length - grid_length >= 4):
-			pulse = random.randint(1, 2) * 2    # Add a pulse of length 2 or 4.
+			pulse = random.randint(1, 2) * 2  # Adds a pulse of length 2 or 4.
 		else:
-			pulse = length - grid_length    # Makes sure the grid length doesn't exceed the desired length.	
+			pulse = length - grid_length  # Makes sure the grid length doesn't exceed the desired length.	
 		pulse_grid.append(pulse + pulse_grid[-1])
 		grid_length += pulse
+	
 	return pulse_grid
 
-def notes_to_timestamps(notes):
-	"""Converts notevalues to timestamps."""
-	timestamps = [0]
+def notes_to_timestamps(notes, startvalue):
+	"""Converts notevalues to timestamps.
+	
+	Args:
+		notes 	   : Notevalues to be converted
+		startvalue : First timestamp value.
+	"""
+	timestamps = [startvalue]
 	for note in notes:
 		timestamps.append(timestamps[-1] + note)
 	return timestamps
+
+def swap_notes(notes, index):
+	"""Swaps two notes."""
+	temp = notes[index]
+	notes[index] = notes[index + 1]
+	notes[index + 1] = temp
+
+def glue_notes(notes, index):
+	"""Glues two consecutive notes together."""
+	notes[index] = notes[index] + notes[index + 1]
+	del notes[index + 1]
+
+def split_notes(notes, index):  
+	"""Splits a note into two smaller notes."""
+	global notelist
+	note = notes[index]
+	note1 = note * 0.5
+	note2 = note1
+
+	if note1 % notelist[-1] != 0:  # Checks sure the splitted notes are a multiple of the smallest notevalue.
+		note1 += notelist[-1] * 0.5  # Adjusts the notevalue to be a multiple of the smallest notevalue.
+		note2 -= notelist[-1] * 0.5  #                              ''
+
+	notes[index] = note1
+	notes.insert(index + 1, note2)
 
 def create_midifile(name, tempo_events, time_signature_events, rhythms, midi_notes):
 	"""Creates a midifile and saves it in the resources/saves/ directory.
 	
 	Args:
-		name 					: name of the midifile.
-		tempo.events 			: 2D-list of tempo changes with corresponding timestamps.
-		time_signature_events 	: 2D-list of timesignature changes with corresponding timestamps.
-		rhythms 				: 2D-list of all the generated rhythms.
-		midi_notes 				: midinotevalue used per rhythm on export.
+		name 				  : name of the midifile.
+		tempo.events 		  : 2D-list of tempo changes with corresponding timestamps.
+		time_signature_events : 2D-list of timesignature changes with corresponding timestamps.
+		rhythms 			  : 2D-list of all the generated rhythms.
+		midi_notes 			  : midinotevalue used per rhythm on export.
 	"""
 	filename = 'resources/saves/{0}.mid'.format(name)
 	midifile = MIDIFile(1)    # Midifile with 1 track.
@@ -375,5 +508,6 @@ def create_midifile(name, tempo_events, time_signature_events, rhythms, midi_not
 			midifile.addNote(0, 0, midi_notes[i], timestamp, 0.25, 100)
 	with open(filename, 'wb') as output_file:    # Open/create midifile with desired name.
 		midifile.writeFile(output_file)    # Write to midifile.
+
 
 
